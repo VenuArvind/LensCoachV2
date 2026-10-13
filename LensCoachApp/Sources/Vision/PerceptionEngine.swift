@@ -13,25 +13,33 @@ public struct SceneTelemetry: Equatable {
     public var isHorizonLevel: Bool { abs(horizonTiltDegrees) <= 0.6 }
     public var subjectRect: CGRect? = nil
     public var isCameraSteady: Bool = true
+    public var detectedFacesCount: Int = 0
+    public var isFaceDetected: Bool { detectedFacesCount > 0 }
+    public var thermalState: ProcessInfo.ThermalState = ProcessInfo.processInfo.thermalState
+    public var isThermalThrottled: Bool { thermalState == .serious || thermalState == .critical }
     
     public init(
         aestheticScore: Float = 0.0,
         attributes: [String: Float] = [:],
         horizonTiltDegrees: Double = 0.0,
         subjectRect: CGRect? = nil,
-        isCameraSteady: Bool = true
+        isCameraSteady: Bool = true,
+        detectedFacesCount: Int = 0,
+        thermalState: ProcessInfo.ThermalState = ProcessInfo.processInfo.thermalState
     ) {
         self.aestheticScore = aestheticScore
         self.attributes = attributes
         self.horizonTiltDegrees = horizonTiltDegrees
         self.subjectRect = subjectRect
         self.isCameraSteady = isCameraSteady
+        self.detectedFacesCount = detectedFacesCount
+        self.thermalState = thermalState
     }
 }
 
 /// Fast real-time perception engine (30 FPS on Apple Neural Engine)
 /// Computes multi-attribute aesthetic scores, horizon roll tilt via CoreMotion,
-/// and salient subject regions via Apple Vision.
+/// facial geometry via Apple Vision, and salient subject regions.
 public class PerceptionEngine: ObservableObject {
     public static let shared = PerceptionEngine()
     
@@ -47,10 +55,14 @@ public class PerceptionEngine: ObservableObject {
     // Motion Manager for true physical horizon leveling
     private let motionManager = CMMotionManager()
     
-    // Saliency / Object request
+    // Saliency request
     private lazy var saliencyRequest: VNGenerateAttentionBasedSaliencyImageRequest = {
-        let req = VNGenerateAttentionBasedSaliencyImageRequest()
-        return req
+        VNGenerateAttentionBasedSaliencyImageRequest()
+    }()
+    
+    // Face detection request (Apple Vision) for portrait headroom & thirds grounding
+    private lazy var faceRequest: VNDetectFaceRectanglesRequest = {
+        VNDetectFaceRectanglesRequest()
     }()
     
     public let attributeNames = [
@@ -115,6 +127,7 @@ public class PerceptionEngine: ObservableObject {
             
             self.currentTelemetry.horizonTiltDegrees = smoothed
             self.currentTelemetry.isCameraSteady = isSteady
+            self.currentTelemetry.thermalState = ProcessInfo.processInfo.thermalState
         }
     }
     
@@ -134,17 +147,34 @@ public class PerceptionEngine: ObservableObject {
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
         let startTime = CFAbsoluteTimeGetCurrent()
         do {
-            try handler.perform([request, saliencyRequest])
+            try handler.perform([request, saliencyRequest, faceRequest])
             let latencyMs = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
             DiagnosticsManager.shared.reportInferenceLatency(latencyMs)
             
-            // Extract dominant salient region if available
-            if let saliencyObs = saliencyRequest.results?.first as? VNSaliencyImageObservation,
-               let salientObjects = saliencyObs.salientObjects,
-               let primarySubject = salientObjects.first {
-                DispatchQueue.main.async {
-                    self.currentTelemetry.subjectRect = primarySubject.boundingBox
+            var primaryRect: CGRect? = nil
+            var faceCount = 0
+            
+            // 1. Prioritize human faces when present (for portrait rules & headroom)
+            if let faces = faceRequest.results as? [VNFaceObservation], !faces.isEmpty {
+                faceCount = faces.count
+                // Choose the most prominent (largest) face
+                if let largestFace = faces.max(by: { ($0.boundingBox.width * $0.boundingBox.height) < ($1.boundingBox.width * $1.boundingBox.height) }) {
+                    primaryRect = largestFace.boundingBox
                 }
+            }
+            
+            // 2. Fallback to generic saliency if no human face detected
+            if primaryRect == nil,
+               let saliencyObs = saliencyRequest.results?.first as? VNSaliencyImageObservation,
+               let salientObjects = saliencyObs.salientObjects,
+               let firstSalient = salientObjects.first {
+                primaryRect = firstSalient.boundingBox
+            }
+            
+            DispatchQueue.main.async {
+                self.currentTelemetry.subjectRect = primaryRect
+                self.currentTelemetry.detectedFacesCount = faceCount
+                self.currentTelemetry.thermalState = ProcessInfo.processInfo.thermalState
             }
         } catch {
             print("PerceptionEngine inference error: \(error)")

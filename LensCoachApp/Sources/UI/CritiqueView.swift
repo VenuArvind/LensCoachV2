@@ -3,11 +3,12 @@ import SwiftUI
 /// On-Device Gemma 4 E2B Shot Review & Photographic Analysis
 public struct CritiqueView: View {
     @ObservedObject var coachEngine: GemmaCoachEngine
-    let image: UIImage
+    let originalImage: UIImage
     var onDismiss: () -> Void
     
     @State private var showCropPreview: Bool = false
     @State private var showFilterEnhance: Bool = false
+    @State private var enhancedImage: UIImage? = nil
     
     public init(
         coachEngine: GemmaCoachEngine = .shared,
@@ -15,7 +16,7 @@ public struct CritiqueView: View {
         onDismiss: @escaping () -> Void
     ) {
         self.coachEngine = coachEngine
-        self.image = image
+        self.originalImage = image
         self.onDismiss = onDismiss
     }
     
@@ -50,7 +51,9 @@ public struct CritiqueView: View {
                     VStack(spacing: 20) {
                         // Image Preview Card with interactive Crop overlay
                         ZStack {
-                            Image(uiImage: image)
+                            let displayImage = (showFilterEnhance && enhancedImage != nil) ? enhancedImage! : originalImage
+                            
+                            Image(uiImage: displayImage)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(maxHeight: 260)
@@ -59,8 +62,7 @@ public struct CritiqueView: View {
                                     RoundedRectangle(cornerRadius: 18)
                                         .stroke(Color.white.opacity(0.15), lineWidth: 1)
                                 )
-                                .saturation(showFilterEnhance ? 1.25 : 1.0)
-                                .contrast(showFilterEnhance ? 1.15 : 1.0)
+                                .animation(.easeInOut(duration: 0.25), value: showFilterEnhance)
                             
                             // Crop Recommendation Box
                             if showCropPreview, let crop = coachEngine.lastCritique?.cropSuggestion {
@@ -138,12 +140,13 @@ public struct CritiqueView: View {
                                         }
                                     }
                                     
-                                    // 4 Core Sub-Scores
-                                    VStack(alignment: .leading, spacing: 8) {
+                                    // 5 Core Sub-Scores (lenscoach_v2_plan.md Section 7)
+                                    VStack(alignment: .leading, spacing: 6) {
                                         ScoreBar(label: "Composition", score: critique.compositionScore, color: .cyan)
                                         ScoreBar(label: "Lighting", score: critique.lightingScore, color: .yellow)
                                         ScoreBar(label: "Color Palette", score: critique.colorScore, color: .pink)
                                         ScoreBar(label: "Sharpness", score: critique.focusScore, color: .emerald)
+                                        ScoreBar(label: "Subject", score: critique.subjectScore, color: .purple)
                                     }
                                 }
                                 
@@ -173,7 +176,15 @@ public struct CritiqueView: View {
                                     .cornerRadius(12)
                                 }
                                 
-                                Button(action: { withAnimation { showFilterEnhance.toggle() } }) {
+                                Button(action: {
+                                    if enhancedImage == nil {
+                                        enhancedImage = CoreImageEditService.shared.applyCoachEdits(
+                                            to: originalImage,
+                                            edits: critique.edits
+                                        )
+                                    }
+                                    withAnimation { showFilterEnhance.toggle() }
+                                }) {
                                     HStack(spacing: 6) {
                                         Image(systemName: showFilterEnhance ? "wand.and.stars.inverse" : "wand.and.stars")
                                         Text(showFilterEnhance ? "Original" : "Coach Edits")
@@ -218,27 +229,46 @@ public struct CritiqueView: View {
                                 .padding(.horizontal, 16)
                             }
                             
-                            // Recommendations Section
-                            if !critique.recommendations.isEmpty {
-                                VStack(alignment: .leading, spacing: 10) {
+                            // Structured Issues Section (lenscoach_v2_plan.md Section 7)
+                            if !critique.issues.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
                                     HStack(spacing: 6) {
-                                        Image(systemName: "lightbulb.fill")
+                                        Image(systemName: "exclamationmark.triangle.fill")
                                             .foregroundColor(.yellow)
-                                        Text("COACH RECOMMENDATIONS")
+                                        Text("ACTIONABLE OPPORTUNITIES")
                                             .font(.system(size: 11, weight: .black, design: .monospaced))
                                             .foregroundColor(.yellow)
                                     }
                                     
-                                    ForEach(critique.recommendations, id: \.self) { item in
-                                        HStack(alignment: .top, spacing: 8) {
-                                            Circle()
-                                                .fill(Color.yellow)
-                                                .frame(width: 5, height: 5)
-                                                .padding(.top, 6)
-                                            Text(item)
-                                                .font(.system(size: 13, weight: .medium))
-                                                .foregroundColor(.white.opacity(0.85))
+                                    ForEach(critique.issues) { issue in
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            HStack {
+                                                Text(issue.aspect.uppercased())
+                                                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                                                    .foregroundColor(.black)
+                                                    .padding(.horizontal, 6)
+                                                    .padding(.vertical, 2)
+                                                    .background(Color.yellow)
+                                                    .cornerRadius(4)
+                                                
+                                                Text(issue.problem)
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                    .foregroundColor(.white.opacity(0.9))
+                                            }
+                                            
+                                            HStack(alignment: .top, spacing: 6) {
+                                                Image(systemName: "arrow.turn.down.right")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(.yellow.opacity(0.8))
+                                                Text(issue.fix)
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .foregroundColor(.white.opacity(0.75))
+                                            }
+                                            .padding(.leading, 4)
                                         }
+                                        .padding(10)
+                                        .background(Color.white.opacity(0.04))
+                                        .cornerRadius(10)
                                     }
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -247,6 +277,27 @@ public struct CritiqueView: View {
                                 .cornerRadius(16)
                                 .padding(.horizontal, 16)
                             }
+                            
+                            // Next Shot Idea (lenscoach_v2_plan.md Section 7)
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "camera.viewfinder")
+                                        .foregroundColor(.cyan)
+                                    Text("NEXT SHOT RECOMMENDATION")
+                                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                                        .foregroundColor(.cyan)
+                                }
+                                
+                                Text(critique.nextShot)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .lineSpacing(3)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(16)
+                            .background(Color.cyan.opacity(0.08))
+                            .cornerRadius(16)
+                            .padding(.horizontal, 16)
                         }
                     }
                     .padding(.bottom, 30)

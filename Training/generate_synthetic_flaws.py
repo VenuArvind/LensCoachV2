@@ -2,7 +2,8 @@
 """
 LensCoach 2.0 - Synthetic Photography Flaw Generator
 Generates realistic photography flaws (horizon tilt, framing offsets, exposure errors)
-from high-aesthetic images, creating paired (flawed_image, ground_truth_telemetry, target_fix_json).
+from high-aesthetic images, creating paired (flawed_image, ground_truth_telemetry, target_fix_json)
+strictly matching the output schemas in lenscoach_v2_plan.md Section 7.
 """
 
 import os
@@ -46,172 +47,202 @@ def generate_synthetic_samples(input_images_dir, output_dir, count=500):
     ]
     
     if not input_files:
-        print(f"No source images found in {input_images_dir}. Creating generator template.")
-        return
+        print(f"No source images found in {input_images_dir}. Creating synthetic color cards...")
+        # Create base compositional images if source directory is empty
+        input_files = []
+        for dummy_i in range(10):
+            dummy_path = images_out / f"base_{dummy_i}.jpg"
+            img = Image.new("RGB", (600, 450), color=(
+                random.randint(50, 200),
+                random.randint(60, 210),
+                random.randint(70, 220)
+            ))
+            img.save(dummy_path)
+            input_files.append(dummy_path)
 
     print(f"Found {len(input_files)} source images. Generating {count} synthetic coaching pairs...")
-    dataset_records = []
+    live_records = []
+    critique_records = []
 
     for i in range(count):
         src_path = random.choice(input_files)
         try:
             with Image.open(src_path) as img:
                 img = img.convert("RGB")
+                w, h = img.size
                 
-                # Pick a synthetic flaw scenario
+                # Alternate between Live Tip and Shot Critique samples
+                is_critique_sample = (i % 3 == 0)
                 flaw_type = random.choice(["tilt", "underexposed", "overexposed", "framing"])
                 record_id = f"synth_{i:05d}"
                 out_filename = f"{record_id}.jpg"
                 out_filepath = images_out / out_filename
                 
                 if flaw_type == "tilt":
-                    # Tilt between -8° and +8° (excluding near-zero)
-                    tilt = random.choice([-1, 1]) * random.uniform(2.0, 7.5)
+                    tilt = random.choice([-1, 1]) * round(random.uniform(2.0, 7.5), 1)
                     flawed_img = apply_horizon_tilt(img, tilt)
                     flawed_img.save(out_filepath, quality=90)
                     
-                    target_fix_direction = "clockwise" if tilt > 0 else "counter-clockwise"
-                    target_action = "level_horizon"
-                    tip_text = f"Tilt camera {abs(tilt):.1f}° {target_fix_direction} to level the horizon line"
-                    
-                    record = {
-                        "id": record_id,
-                        "image": str(out_filepath.name),
-                        "telemetry": {
-                            "horizon_tilt_deg": round(tilt, 2),
-                            "aesthetic_score": 0.58,
-                            "primary_subject_box": [0.35, 0.30, 0.65, 0.75]
-                        },
-                        "conversations": [
-                            {
-                                "role": "user",
-                                "content": "<image>\nViewfinder telemetry: Horizon tilt is "
-                                           f"{tilt:+.1f}°. Aesthetic score: 5.8/10. "
-                                           "Give one immediate coaching instruction."
-                            },
-                            {
-                                "role": "model",
-                                "content": json.dumps({
-                                    "tip": tip_text,
-                                    "action": target_action,
-                                    "degrees": round(abs(tilt), 1),
-                                    "priority": "high"
-                                })
-                            }
-                        ]
+                    target_dir = "clockwise" if tilt > 0 else "counter-clockwise"
+                    tip_text = f"Tilt ~{abs(tilt):.0f}° {target_dir} to level the horizon"
+                    live_model_json = {
+                        "tip": tip_text,
+                        "action": "rotate",
+                        "params": {"degrees": abs(tilt)},
+                        "priority": "high"
                     }
-                    dataset_records.append(record)
+                    critique_model_json = {
+                        "overall": 6.4,
+                        "summary": "Dynamic capture but noticeably tilted horizon line distracts from subject.",
+                        "scores": {"composition": 6, "light": 7, "color": 7, "focus": 8, "subject": 7},
+                        "strengths": ["Clean focal plane on main subject", "Natural color reproduction"],
+                        "issues": [{
+                            "aspect": "composition",
+                            "problem": f"Horizon line is tilted {abs(tilt):.1f}° {target_dir}.",
+                            "fix": f"Rotate camera ~{abs(tilt):.1f}° {target_dir} to level framing.",
+                            "region": [0.0, 0.45, 1.0, 0.55]
+                        }],
+                        "crop": [0.05, 0.05, 0.95, 0.95],
+                        "edits": {"exposure": 0.0, "contrast": 0.05, "temperature": 0},
+                        "next_shot": "Align the horizon with the lower third grid line and keep camera level."
+                    }
                     
                 elif flaw_type == "underexposed":
                     factor = random.uniform(0.40, 0.65)
                     flawed_img = apply_exposure_shift(img, factor)
                     flawed_img.save(out_filepath, quality=90)
                     
-                    ev_needed = round(1.0 / factor, 1)
-                    tip_text = f"Increase exposure (+{ev_needed} EV) to lift shadow details on the subject"
-                    
-                    record = {
-                        "id": record_id,
-                        "image": str(out_filepath.name),
-                        "telemetry": {
-                            "horizon_tilt_deg": 0.1,
-                            "aesthetic_score": 0.45,
-                            "weakest_attribute": "Light"
-                        },
-                        "conversations": [
-                            {
-                                "role": "user",
-                                "content": "<image>\nViewfinder telemetry: Horizon is level. "
-                                           "Lighting score is low (4.5/10). Give one coaching instruction."
-                            },
-                            {
-                                "role": "model",
-                                "content": json.dumps({
-                                    "tip": tip_text,
-                                    "action": "increase_light",
-                                    "priority": "medium"
-                                })
-                            }
-                        ]
+                    ev = round((1.0 / factor) - 1.0, 1)
+                    tip_text = f"Increase exposure (+{ev} EV) to lift shadow details"
+                    live_model_json = {
+                        "tip": tip_text,
+                        "action": "exposure",
+                        "params": {"ev": ev},
+                        "priority": "high"
                     }
-                    dataset_records.append(record)
+                    critique_model_json = {
+                        "overall": 5.9,
+                        "summary": "Framing is deliberate but underexposure crushes shadow nuances.",
+                        "scores": {"composition": 7, "light": 5, "color": 6, "focus": 7, "subject": 6},
+                        "strengths": ["Balanced compositional thirds", "Good edge-to-edge sharpness"],
+                        "issues": [{
+                            "aspect": "light",
+                            "problem": "Heavy underexposure losing shadow tones.",
+                            "fix": f"Lift exposure by +{ev} EV and apply mild tone curve.",
+                            "region": [0.15, 0.20, 0.85, 0.80]
+                        }],
+                        "crop": None,
+                        "edits": {"exposure": ev, "contrast": 0.1, "temperature": 0},
+                        "next_shot": "Meter for subject faces or tap screen to adjust exposure bias before shooting."
+                    }
                     
                 elif flaw_type == "overexposed":
                     factor = random.uniform(1.4, 1.8)
                     flawed_img = apply_exposure_shift(img, factor)
                     flawed_img.save(out_filepath, quality=90)
                     
-                    tip_text = "Lower exposure by ~1 stop to recover blown highlight details"
-                    record = {
-                        "id": record_id,
-                        "image": str(out_filepath.name),
-                        "telemetry": {
-                            "horizon_tilt_deg": 0.0,
-                            "aesthetic_score": 0.50,
-                            "weakest_attribute": "Light"
-                        },
-                        "conversations": [
-                            {
-                                "role": "user",
-                                "content": "<image>\nViewfinder telemetry: Highlights are clipping. Give one coaching instruction."
-                            },
-                            {
-                                "role": "model",
-                                "content": json.dumps({
-                                    "tip": tip_text,
-                                    "action": "soften_light",
-                                    "priority": "medium"
-                                })
-                            }
-                        ]
+                    tip_text = "Lower exposure by ~1 stop to recover blown highlights"
+                    live_model_json = {
+                        "tip": tip_text,
+                        "action": "exposure",
+                        "params": {"ev": -0.7},
+                        "priority": "medium"
                     }
-                    dataset_records.append(record)
+                    critique_model_json = {
+                        "overall": 6.1,
+                        "summary": "Highlight clipping in bright regions washes out sky and skin textures.",
+                        "scores": {"composition": 7, "light": 5, "color": 6, "focus": 8, "subject": 6},
+                        "strengths": ["Pleasing subject posture", "Sharp foreground focus"],
+                        "issues": [{
+                            "aspect": "light",
+                            "problem": "Blown highlights across upper frame.",
+                            "fix": "Reduce exposure bias by -0.7 EV to preserve highlight gradients.",
+                            "region": [0.0, 0.0, 1.0, 0.40]
+                        }],
+                        "crop": None,
+                        "edits": {"exposure": -0.6, "contrast": 0.08, "temperature": -100},
+                        "next_shot": "Shoot with light source behind you or use HDR capture mode."
+                    }
                     
                 else: # framing
-                    w, h = img.size
-                    # Awkward tight crop cutting bottom 20%
-                    cropped = img.crop((0, 0, w, int(h * 0.80)))
+                    cropped = img.crop((0, 0, w, int(h * 0.82)))
                     cropped.save(out_filepath, quality=90)
                     
                     tip_text = "Step back slightly to avoid clipping the base of your subject"
+                    live_model_json = {
+                        "tip": tip_text,
+                        "action": "step_back",
+                        "params": {"dist": 0.5},
+                        "priority": "high"
+                    }
+                    critique_model_json = {
+                        "overall": 6.5,
+                        "summary": "Composition feels constrained; subject bottom edge is awkwardly clipped.",
+                        "scores": {"composition": 6, "light": 7, "color": 7, "focus": 8, "subject": 6},
+                        "strengths": ["Crisp focal detail", "Well-balanced color saturation"],
+                        "issues": [{
+                            "aspect": "composition",
+                            "problem": "Subject cutoff at the bottom boundary creates tension.",
+                            "fix": "Step back 2-3 feet or lower angle to include complete subject contour.",
+                            "region": [0.10, 0.70, 0.90, 1.0]
+                        }],
+                        "crop": [0.08, 0.04, 0.92, 0.96],
+                        "edits": {"exposure": 0.0, "contrast": 0.05, "temperature": 0},
+                        "next_shot": "Give breathing room around subject limbs and lower camera slightly."
+                    }
+                
+                # Assemble record according to sample type
+                if is_critique_sample:
                     record = {
                         "id": record_id,
                         "image": str(out_filepath.name),
-                        "telemetry": {
-                            "horizon_tilt_deg": 0.0,
-                            "aesthetic_score": 0.52,
-                            "weakest_attribute": "Balance"
-                        },
+                        "mode": "critique",
                         "conversations": [
                             {
                                 "role": "user",
-                                "content": "<image>\nViewfinder telemetry: Subject boundary is clipped near the bottom frame. Give one coaching instruction."
+                                "content": "<image>\nCaptured photograph telemetry: AADB Aesthetic Score 6.2/10. "
+                                           "Generate full structured photographic critique JSON."
                             },
                             {
                                 "role": "model",
-                                "content": json.dumps({
-                                    "tip": tip_text,
-                                    "action": "step_back",
-                                    "priority": "high"
-                                })
+                                "content": json.dumps(critique_model_json)
                             }
                         ]
                     }
-                    dataset_records.append(record)
+                    critique_records.append(record)
+                else:
+                    record = {
+                        "id": record_id,
+                        "image": str(out_filepath.name),
+                        "mode": "live_tip",
+                        "conversations": [
+                            {
+                                "role": "user",
+                                "content": "<image>\nViewfinder telemetry: Aesthetic score: 5.8/10. "
+                                           "Give one immediate coaching instruction JSON."
+                            },
+                            {
+                                "role": "model",
+                                "content": json.dumps(live_model_json)
+                            }
+                        ]
+                    }
+                    live_records.append(record)
 
         except Exception as e:
             continue
 
-    # Write out JSONL dataset
-    output_jsonl = output_dir / "lenscoach_synthetic_flaws.jsonl"
+    all_records = live_records + critique_records
+    output_jsonl = output_dir / "lenscoach_synthetic_dataset.jsonl"
     with open(output_jsonl, "w") as f:
-        for r in dataset_records:
+        for r in all_records:
             f.write(json.dumps(r) + "\n")
 
-    print(f"✅ Successfully wrote {len(dataset_records)} coaching samples to {output_jsonl}")
+    print(f"✅ Generated {len(live_records)} Live Tips and {len(critique_records)} Critiques.")
+    print(f"✅ Saved full dataset to {output_jsonl}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate synthetic photography flaws dataset")
+    parser = argparse.ArgumentParser(description="Generate synthetic photography flaws dataset matching v2 plan")
     parser.add_argument("--src_dir", default="Training/data", help="Path to input images directory")
     parser.add_argument("--out_dir", default="Training/generated_dataset", help="Path to output directory")
     parser.add_argument("--count", type=int, default=300, help="Number of pairs to generate")

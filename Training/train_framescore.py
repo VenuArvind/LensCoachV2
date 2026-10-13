@@ -2,9 +2,10 @@ import torch
 import torchvision.transforms as T
 import coremltools as ct
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 from PIL import Image
 import pandas as pd
+import numpy as np
 import os
 import argparse
 import ssl
@@ -39,7 +40,6 @@ class AADBDataset(Dataset):
             return torch.zeros((3, 224, 224)), torch.zeros(len(self.attr_cols))
             
         item = self.data[idx]
-        # Match the EXACT folder name from the Kaggle unzip: 'datasetImages_warp256 2'
         img_path = os.path.join(self.img_dir, "datasetImages_warp256 2", item['ImageFile'].strip())
         
         try:
@@ -65,6 +65,45 @@ def get_model():
             param.requires_grad = False
     return model.to(device)
 
+def compute_srcc(predictions, targets):
+    """Computes Spearman Rank Correlation Coefficient (SRCC) without external scipy dependency."""
+    try:
+        from scipy.stats import spearmanr
+        srcc, _ = spearmanr(predictions, targets)
+        return float(srcc) if not np.isnan(srcc) else 0.0
+    except ImportError:
+        # Fallback ranking correlation
+        pred_ranks = np.argsort(np.argsort(predictions))
+        target_ranks = np.argsort(np.argsort(targets))
+        n = len(predictions)
+        if n <= 1:
+            return 0.0
+        d_sq = np.sum((pred_ranks - target_ranks) ** 2)
+        return float(1.0 - (6.0 * d_sq) / (n * (n**2 - 1)))
+
+def evaluate(model, val_loader, criterion):
+    """Evaluates validation loss and SRCC for aesthetic score prediction."""
+    model.eval()
+    val_loss = 0.0
+    all_preds = []
+    all_targets = []
+    
+    with torch.no_grad():
+        for imgs, labels in val_loader:
+            imgs, labels = imgs.to(device), labels.to(device)
+            outputs = model(imgs)
+            loss = criterion(outputs, labels)
+            val_loss += loss.item() * imgs.size(0)
+            
+            # Index 0 is overall aesthetic score
+            all_preds.extend(outputs[:, 0].cpu().numpy().tolist())
+            all_targets.extend(labels[:, 0].cpu().numpy().tolist())
+            
+    total_samples = len(all_preds)
+    mean_loss = val_loss / max(1, total_samples)
+    srcc = compute_srcc(np.array(all_preds), np.array(all_targets))
+    return mean_loss, srcc
+
 def export_to_coreml(model, output_path):
     model.eval().cpu()
     example_input = torch.randn(1, 3, 224, 224)
@@ -84,49 +123,74 @@ def export_to_coreml(model, output_path):
     mlmodel.author = "LensCoach AI"
     mlmodel.short_description = "AADB Aesthetic Multi-Attribute Predictor"
     mlmodel.save(output_path)
-    print(f"Model saved to {output_path}")
+    print(f"✅ Model saved to {output_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", required=True)
-    parser.add_argument("--epochs", type=int, default=1)
+    parser.add_argument("--epochs", type=int, default=5)
+    parser.add_argument("--val_split", type=float, default=0.2)
     args = parser.parse_args()
 
     # Transforms
-    transform = T.Compose([
+    train_transform = T.Compose([
+        T.Resize((240, 240)),
+        T.RandomCrop((224, 224)),
+        T.RandomHorizontalFlip(),
+        T.ToTensor(),
+        T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+    
+    val_transform = T.Compose([
         T.Resize((224, 224)),
         T.ToTensor(),
         T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
-    # Data
-    dataset = AADBDataset(os.path.join(args.data_dir, "Dataset.csv"), args.data_dir, transform)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    # Dataset & Train/Val split (lenscoach_v2_plan.md Section 1 & 8)
+    full_dataset = AADBDataset(os.path.join(args.data_dir, "Dataset.csv"), args.data_dir, train_transform)
+    val_size = int(len(full_dataset) * args.val_split)
+    train_size = len(full_dataset) - val_size
+    
+    torch.manual_seed(42)
+    train_set, val_set = random_split(full_dataset, [train_size, val_size])
+    val_set.dataset.transform = val_transform
+    
+    train_loader = DataLoader(train_set, batch_size=32, shuffle=True)
+    val_loader = DataLoader(val_set, batch_size=32, shuffle=False)
+    print(f"Dataset split: {train_size} train samples, {val_size} validation samples.")
 
     # Model, Loss, Optimizer
     model = get_model()
     criterion = torch.nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-    # Training Loop
+    best_srcc = -1.0
     print(f"Starting training for {args.epochs} epoch(s)...")
-    model.train()
     for epoch in range(args.epochs):
+        model.train()
         running_loss = 0.0
-        for i, (imgs, labels) in enumerate(dataloader):
+        for i, (imgs, labels) in enumerate(train_loader):
             imgs, labels = imgs.to(device), labels.to(device)
-            
             optimizer.zero_grad()
             outputs = model(imgs)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-            
             running_loss += loss.item()
-            if i % 10 == 0:
-                print(f"Batch {i}, Loss: {loss.item():.4f}")
+            
+            if i % 20 == 0:
+                print(f"Epoch [{epoch+1}/{args.epochs}], Batch [{i}/{len(train_loader)}], Loss: {loss.item():.4f}")
         
-        print(f"Epoch {epoch+1} Complete. Avg Loss: {running_loss/len(dataloader):.4f}")
+        train_loss = running_loss / max(1, len(train_loader))
+        val_loss, val_srcc = evaluate(model, val_loader, criterion)
+        print(f"Epoch {epoch+1} Complete | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val SRCC: {val_srcc:.4f}")
+        
+        if val_srcc > best_srcc:
+            best_srcc = val_srcc
+            torch.save(model.state_dict(), "best_framescore_weights.pth")
+            print(f"⭐ Saved new best checkpoint with SRCC: {best_srcc:.4f}")
 
-    # Export
+    # Export best model to CoreML
+    print(f"Exporting FrameScore model with best SRCC ({best_srcc:.4f}) to CoreML...")
     export_to_coreml(model, "FrameScore.mlpackage")

@@ -134,7 +134,7 @@ public class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutput
               let image = UIImage(data: data) else { return }
         
         // Save to Gallery with real-time aesthetic telemetry
-        GalleryManager.shared.savePhoto(
+        let photoId = GalleryManager.shared.savePhoto(
             image,
             aestheticScore: perceptionEngine.currentTelemetry.aestheticScore,
             attributes: perceptionEngine.currentTelemetry.attributes
@@ -146,10 +146,13 @@ public class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutput
         
         // Trigger on-device deep critique
         Task {
-            _ = await self.gemmaCoach.analyzeCapturedPhoto(
+            let critique = await self.gemmaCoach.analyzeCapturedPhoto(
                 image: image,
                 telemetry: self.perceptionEngine.currentTelemetry
             )
+            if let id = photoId {
+                GalleryManager.shared.updateCritique(for: id, critique: critique)
+            }
         }
     }
 }

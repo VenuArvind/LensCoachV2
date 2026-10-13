@@ -7,13 +7,22 @@ public struct PhotoEntry: Codable, Identifiable {
     public let imagePath: String
     public let aestheticScore: Float
     public let attributes: [String: Float]
+    public var critique: ShotCritique?
     
-    public init(id: UUID = UUID(), date: Date = Date(), imagePath: String, aestheticScore: Float, attributes: [String: Float]) {
+    public init(
+        id: UUID = UUID(),
+        date: Date = Date(),
+        imagePath: String,
+        aestheticScore: Float,
+        attributes: [String: Float],
+        critique: ShotCritique? = nil
+    ) {
         self.id = id
         self.date = date
         self.imagePath = imagePath
         self.aestheticScore = aestheticScore
         self.attributes = attributes
+        self.critique = critique
     }
 }
 
@@ -38,14 +47,15 @@ public class GalleryManager: ObservableObject {
         baseDirectory.appendingPathComponent(indexFileName)
     }
     
-    public func savePhoto(_ image: UIImage, aestheticScore: Float, attributes: [String: Float]) {
+    @discardableResult
+    public func savePhoto(_ image: UIImage, aestheticScore: Float, attributes: [String: Float], critique: ShotCritique? = nil) -> UUID? {
         ensureDirectoryExists()
         
         let id = UUID()
         let fileName = "\(id.uuidString).jpg"
         let fileURL = baseDirectory.appendingPathComponent(fileName)
         
-        guard let imageData = image.jpegData(compressionQuality: 0.8) else { return }
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else { return nil }
         
         do {
             try imageData.write(to: fileURL)
@@ -54,15 +64,27 @@ public class GalleryManager: ObservableObject {
                 id: id,
                 imagePath: fileName,
                 aestheticScore: aestheticScore,
-                attributes: attributes
+                attributes: attributes,
+                critique: critique
             )
             
             DispatchQueue.main.async {
                 self.photos.insert(entry, at: 0)
                 self.saveIndex()
             }
+            return id
         } catch {
             print("Error saving photo: \(error)")
+            return nil
+        }
+    }
+    
+    public func updateCritique(for id: UUID, critique: ShotCritique) {
+        DispatchQueue.main.async {
+            if let index = self.photos.firstIndex(where: { $0.id == id }) {
+                self.photos[index].critique = critique
+                self.saveIndex()
+            }
         }
     }
     
