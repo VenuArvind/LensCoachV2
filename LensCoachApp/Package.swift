@@ -20,8 +20,7 @@ let package = Package(
             dependencies: [],
             path: "Sources",
             resources: [
-                .copy("Resources/FrameScore.mlmodelc"),
-                .copy("Resources/Phi-3-mini-4k-instruct-q4.gguf")
+                .copy("Resources/FrameScore.mlmodelc")
             ])
     ]
 )

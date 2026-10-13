@@ -14,21 +14,12 @@ public struct CameraPreview: UIViewRepresentable {
         previewLayer.videoGravity = .resizeAspectFill
         view.layer.addSublayer(previewLayer)
         
-        // Final Rule of Thirds Grid
-        let gridLayer = CAShapeLayer()
-        gridLayer.strokeColor = UIColor.white.withAlphaComponent(0.4).cgColor
-        gridLayer.lineWidth = 1.0
-        view.layer.addSublayer(gridLayer)
-        
         context.coordinator.previewLayer = previewLayer
-        context.coordinator.gridLayer = gridLayer
-        
         return view
     }
     
     public func updateUIView(_ uiView: UIView, context: Context) {
         context.coordinator.previewLayer?.frame = uiView.bounds
-        context.coordinator.updateGrid(in: uiView.bounds)
     }
     
     public func makeCoordinator() -> Coordinator {
@@ -37,541 +28,338 @@ public struct CameraPreview: UIViewRepresentable {
     
     public class Coordinator: NSObject {
         var previewLayer: AVCaptureVideoPreviewLayer?
-        var gridLayer: CAShapeLayer?
-        
-        func updateGrid(in rect: CGRect) {
-            guard let gridLayer = gridLayer else { return }
-            let path = UIBezierPath()
-            
-            // Vertical lines
-            for i in 1...2 {
-                let x = rect.width * CGFloat(i) / 3.0
-                path.move(to: CGPoint(x: x, y: 0))
-                path.addLine(to: CGPoint(x: x, y: rect.height))
-            }
-            
-            // Horizontal lines
-            for i in 1...2 {
-                let y = rect.height * CGFloat(i) / 3.0
-                path.move(to: CGPoint(x: 0, y: y))
-                path.addLine(to: CGPoint(x: rect.width, y: y))
-            }
-            
-            gridLayer.path = path.cgPath
-        }
     }
 }
 
 public struct CameraView: View {
     @StateObject public var cameraManager = CameraManager()
-    @StateObject public var cloudService = CloudCritiqueService()
-    @State private var showCritique = false
-    @State private var showGallery = false
-    @State private var selectionRequired = true
-    @State private var showCloudSetup = false
-    @State private var showSettings = false
-    @State private var showDeleteConfirmation = false
+    @State private var showCritiqueSheet: Bool = false
+    @State private var showGallerySheet: Bool = false
+    @State private var showDiagnostics: Bool = false
     
     public init() {}
     
-    public var weakestAttributes: [(String, Float)] {
-        cameraManager.aestheticAnalyzer.smoothedAttributes
-            .sorted { $0.value < $1.value }
-            .prefix(3)
-            .map { ($0.key, $0.value) }
-    }
-    
     public var body: some View {
         ZStack {
-            // Camera Preview
-            if let frame = cameraManager.currentFrame {
-                // NOTE: The CameraPreview struct's initializer needs to be updated to accept pixelBuffer
-                // For now, keeping the original CameraPreview(cameraManager:) to avoid compilation errors
-                // as the instruction only provided CameraView changes.
-                // If CameraPreview was updated to take pixelBuffer, this would be:
-                // CameraPreview(pixelBuffer: frame)
-                CameraPreview(cameraManager: cameraManager)
+            // 1. Camera Viewfinder
+            CameraPreview(cameraManager: cameraManager)
+                .edgesIgnoringSafeArea(.all)
+                .onAppear {
+                    cameraManager.start()
+                }
+                .onDisappear {
+                    cameraManager.stop()
+                }
+            
+            // 2. Rule of Thirds Overlay
+            if cameraManager.isGridEnabled {
+                GridOverlay()
                     .edgesIgnoringSafeArea(.all)
-                    .onAppear {
-                        if !selectionRequired {
-                            cameraManager.start()
-                        }
-                    }
-            } else {
-                Color.black.edgesIgnoringSafeArea(.all)
+                    .allowsHitTesting(false)
             }
             
-            // Initial Mode Selection Overlay
-            if selectionRequired {
-                ZStack {
-                    Color.black.opacity(0.85).edgesIgnoringSafeArea(.all)
-                    
-                    VStack(spacing: 30) {
-                        Image(systemName: "camera.aperture")
-                            .font(.system(size: 80))
-                            .foregroundColor(.white)
-                        
-                        Text("Choose Your Lens Engine")
-                            .font(.system(size: 26, weight: .black))
-                            .foregroundColor(.white)
-                        
-                        Text("How should LensCoach see the world?")
-                            .font(.system(size: 16))
-                            .foregroundColor(.white.opacity(0.6))
-                        
-                        VStack(spacing: 16) {
-                            if !showCloudSetup {
-                                Button(action: {
-                                    cameraManager.scoringMode = .local
-                                    selectionRequired = false
-                                    cameraManager.start()
-                                }) {
-                                    ModeButtonView(
-                                        title: "LOCAL COREML",
-                                        subtitle: "15fps / Instant / Battery Efficient",
-                                        icon: "cpu.fill",
-                                        color: .green
-                                    )
-                                }
-                                
-                                Button(action: {
-                                    showCloudSetup = true
-                                }) {
-                                    ModeButtonView(
-                                        title: "CLOUD AI",
-                                        subtitle: "5s / Deep Reasoning / LLM Analysis",
-                                        icon: "cloud.fill",
-                                        color: .blue
-                                    )
-                                }
-                            } else {
-                                // Cloud Setup Sub-screen
-                                VStack(spacing: 20) {
-                                    Text("Cloud AI Configuration")
-                                        .font(.system(size: 20, weight: .bold))
-                                        .foregroundColor(.white)
-                                    
-                                    Picker("Provider", selection: $cloudService.selectedProvider) {
-                                        ForEach(AIProvider.allCases) { provider in
-                                            Text(provider.rawValue).tag(provider)
-                                        }
-                                    }
-                                    .pickerStyle(SegmentedPickerStyle())
-                                    .padding(.horizontal)
-                                    
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        Text("\(cloudService.selectedProvider.rawValue) API Key")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundColor(.white.opacity(0.6))
-                                        
-                                        Group {
-                                            if cloudService.selectedProvider == .anthropic {
-                                                SecureField("sk-ant-...", text: $cloudService.anthropicKey)
-                                            } else if cloudService.selectedProvider == .gemini {
-                                                SecureField("AIza...", text: $cloudService.geminiKey)
-                                            } else {
-                                                SecureField("sk-...", text: $cloudService.openaiKey)
-                                            }
-                                        }
-                                        .textFieldStyle(PlainTextFieldStyle())
-                                        .padding()
-                                        .background(Color.white.opacity(0.1))
-                                        .cornerRadius(10)
-                                        .foregroundColor(.white)
-                                    }
-                                    .padding(.horizontal)
-                                    
-                                    HStack(spacing: 12) {
-                                        Button(action: { showCloudSetup = false }) {
-                                            Text("Back")
-                                                .font(.system(size: 16, weight: .bold))
-                                                .foregroundColor(.white.opacity(0.6))
-                                                .frame(maxWidth: .infinity)
-                                                .padding()
-                                                .background(Color.white.opacity(0.1))
-                                                .cornerRadius(12)
-                                        }
-                                        
-                                        Button(action: {
-                                            cameraManager.scoringMode = .cloud
-                                            selectionRequired = false
-                                            cameraManager.start()
-                                        }) {
-                                            Text("Start Lens")
-                                                .font(.system(size: 16, weight: .bold))
-                                                .foregroundColor(.white)
-                                                .frame(maxWidth: .infinity)
-                                                .padding()
-                                                .background(Color.blue)
-                                                .cornerRadius(12)
-                                        }
-                                    }
-                                    .padding(.horizontal)
-                                }
-                                .padding()
-                                .background(Color.white.opacity(0.05))
-                                .cornerRadius(20)
-                                .transition(.move(edge: .trailing).combined(with: .opacity))
-                            }
-                        }
-                        .padding(.horizontal, 30)
-                    }
-                }
-                .transition(.opacity)
-                .zIndex(10)
+            // 3. Dynamic Horizon Level Guide (Aerospace style)
+            if cameraManager.isHorizonLevelGuideEnabled {
+                HorizonLevelReticle(
+                    tiltDegrees: cameraManager.perceptionEngine.currentTelemetry.horizonTiltDegrees,
+                    isLevel: cameraManager.perceptionEngine.currentTelemetry.isHorizonLevel
+                )
+                .allowsHitTesting(false)
             }
             
-            // HUD and Controls
+            // 4. Salient Subject Bounding Box
+            if let subject = cameraManager.perceptionEngine.currentTelemetry.subjectRect {
+                SubjectFocusBox(normalizedRect: subject)
+                    .allowsHitTesting(false)
+            }
+            
+            // 5. HUD Controls & Telemetry
             VStack(spacing: 0) {
-                // Slim Top Bar
+                // Top Telemetry & Control Bar
                 HStack(spacing: 12) {
-                    // Optimized Mode Picker
-                    Picker("Scoring", selection: $cameraManager.scoringMode) {
-                        Text("LOCAL").tag(ScoringMode.local)
-                        Text("CLOUD").tag(ScoringMode.cloud)
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .frame(width: 140)
-                    .scaleEffect(0.9)
-                    
-                    if (cameraManager.scoringMode == .cloud && cameraManager.cloudScoringService.isScoring) || cloudService.isAnalyzing {
-                        HStack(spacing: 6) {
-                            if let lastFrame = cameraManager.cloudScoringService.lastAnonymizedFrame {
-                                Image(uiImage: lastFrame)
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                                    .frame(width: 30, height: 30)
-                                    .clipShape(Circle())
-                                    .overlay(Circle().stroke(Color.green, lineWidth: 1))
-                            }
-                            Image(systemName: "face.dashed.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.green)
-                        }
-                        .transition(.opacity)
-                    }
+                    // Aesthetic Score Pill (CoreML ANE)
+                    AestheticScorePill(
+                        score: cameraManager.perceptionEngine.currentTelemetry.aestheticScore
+                    )
                     
                     Spacer()
                     
-                    // Compact Gallery & Settings Buttons
-                    HStack(spacing: 12) {
-                        Button(action: { showGallery = true }) {
+                    // Quick Action Buttons
+                    HStack(spacing: 10) {
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                cameraManager.isGridEnabled.toggle()
+                            }
+                        }) {
+                            Image(systemName: cameraManager.isGridEnabled ? "grid" : "grid.slash")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(cameraManager.isGridEnabled ? .white : .white.opacity(0.4))
+                                .frame(width: 36, height: 36)
+                                .background(BlurView(style: .systemUltraThinMaterialDark).clipShape(Circle()))
+                        }
+                        
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                cameraManager.isHorizonLevelGuideEnabled.toggle()
+                            }
+                        }) {
+                            Image(systemName: "gyroscope")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(cameraManager.isHorizonLevelGuideEnabled ? .emerald : .white.opacity(0.4))
+                                .frame(width: 36, height: 36)
+                                .background(BlurView(style: .systemUltraThinMaterialDark).clipShape(Circle()))
+                        }
+                        
+                        Button(action: { showGallerySheet = true }) {
                             Image(systemName: "photo.stack")
-                                .font(.system(size: 18, weight: .bold))
+                                .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.white)
-                                .frame(width: 40, height: 40)
-                                .background(BlurView(style: .systemThinMaterialDark).clipShape(Circle()))
-                        }
-                        
-                        Button(action: { showSettings.toggle() }) {
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 40, height: 40)
-                                .background(BlurView(style: .systemThinMaterialDark).clipShape(Circle()))
+                                .frame(width: 36, height: 36)
+                                .background(BlurView(style: .systemUltraThinMaterialDark).clipShape(Circle()))
                         }
                     }
                 }
-                .padding(.horizontal)
-                .padding(.top, 44)
-                
-                // Small Score Ring (Floating)
-                HStack {
-                    ScoreRing(score: cameraManager.aestheticAnalyzer.aestheticScore)
-                        .scaleEffect(0.7) // Shrink to ~56px
-                        .frame(width: 60, height: 60)
-                        .padding(.leading, 10)
-                    
-                    if cameraManager.scoringMode == .cloud && !cameraManager.cloudScoringService.isScoring && !cloudService.isAnalyzing {
-                        if cloudService.currentKey.isEmpty {
-                            HStack(spacing: 4) {
-                                Image(systemName: "key.fill")
-                                Text("Key Required")
-                            }
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundColor(.red)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.red.opacity(0.1).cornerRadius(4))
-                        } else {
-                            Text("Cloud AI Active")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundColor(.blue.opacity(0.8))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(BlurView(style: .systemThinMaterialDark).cornerRadius(4))
-                        }
-                    }
-                    
-                    Spacer()
-                }
-                .padding(.top, 8)
-                
-                // Compact Tip Bubble (Floating Bottom-Left)
-                if !cameraManager.tipGenerator.currentTip.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 10))
-                                .foregroundColor(.yellow)
-                            Text("AI TIP")
-                                .font(.system(size: 8, weight: .black))
-                                .foregroundColor(.yellow.opacity(0.8))
-                        }
-                        
-                        Text(cameraManager.tipGenerator.currentTip)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 14)
-                    .frame(maxWidth: 220, alignment: .leading)
-                    .background(BlurView(style: .systemThinMaterialDark).cornerRadius(12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 1))
-                    .padding(.leading, 16)
-                    .padding(.bottom, 8)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .id(cameraManager.tipGenerator.currentTip)
-                }
+                .padding(.horizontal, 20)
+                .padding(.top, 50)
                 
                 Spacer()
                 
-                // Mini Attribute HUD (Coaching) - Shrink and move to edge
-                if cameraManager.aestheticAnalyzer.aestheticScore > 0 {
-                    HStack(spacing: 12) {
-                        ForEach(weakestAttributes, id: \.0) { attr, score in
-                            HStack(spacing: 6) {
-                                Text(attr.prefix(4).uppercased())
-                                    .font(.system(size: 8, weight: .black))
-                                    .foregroundColor(.white.opacity(0.6))
-                                
-                                Text(String(format: "%.1f", score))
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 3)
-                                    .background(scoreColor(score).opacity(0.4))
-                                    .cornerRadius(4)
-                            }
-                            .padding(4)
-                            .background(BlurView(style: .systemThinMaterialDark).cornerRadius(6))
+                // Gemma 4 Live Coach Pill (Floating Viewfinder Advice)
+                LiveCoachCapsule(tip: cameraManager.gemmaCoach.activeTip)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 20)
+                
+                // Bottom Controls Bar with Shutter Button
+                HStack(alignment: .center) {
+                    // Engine Status Pill
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(Color.emerald)
+                            .frame(width: 6, height: 6)
+                        Text("GEMMA 4 EDGE")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(BlurView(style: .systemUltraThinMaterialDark).clipShape(Capsule()))
+                    .frame(width: 100, alignment: .leading)
+                    
+                    Spacer()
+                    
+                    // Modern Shutter Button
+                    Button(action: {
+                        cameraManager.capturePhoto()
+                        showCritiqueSheet = true
+                    }) {
+                        ZStack {
+                            Circle()
+                                .stroke(Color.white.opacity(0.3), lineWidth: 4)
+                                .frame(width: 78, height: 78)
+                            
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 64, height: 64)
                         }
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom, 12)
-                    .transition(.opacity)
+                    
+                    Spacer()
+                    
+                    // Empty balancer
+                    Color.clear.frame(width: 100, height: 1)
                 }
-                
-                // Capture Button
-                Button(action: {
-                    cameraManager.capturePhoto()
-                }) {
-                    Circle()
-                        .stroke(Color.white, lineWidth: 4)
-                        .frame(width: 76, height: 76)
-                        .overlay(Circle().fill(Color.white).scaleEffect(0.85))
-                }
+                .padding(.horizontal, 24)
                 .padding(.bottom, 40)
             }
-            
-            // Photo Review Overlay
-            if let capturedImage = cameraManager.capturedImage {
-                ZStack {
-                    Color.black.edgesIgnoringSafeArea(.all)
-                    
-                    Image(uiImage: capturedImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .cornerRadius(20)
-                        .padding()
-                    
-                    VStack {
-                        HStack {
-                            Button(action: {
-                                cameraManager.capturedImage = nil
-                            }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 32))
-                                    .foregroundColor(.white.opacity(0.8))
-                            }
-                            .padding(.top, 50)
-                            .padding(.leading, 20)
-                            
-                            Spacer()
-                        }
-                        
-                        Spacer()
-                        
-                        // Cloud Critique Button
-                        Button(action: {
-                            if cloudService.currentKey.isEmpty {
-                                // Show API Key input or notify user
-                                cloudService.error = "Please provide your \(cloudService.selectedProvider.rawValue) API Key."
-                            }
-                            cloudService.analyzeImage(capturedImage, scores: cameraManager.aestheticAnalyzer.smoothedAttributes)
-                            showCritique = true
-                        }) {
-                            HStack {
-                                if cloudService.isAnalyzing {
-                                    ProgressView().tint(.white)
-                                } else {
-                                    Image(systemName: "sparkles")
-                                }
-                                Text(cloudService.isAnalyzing ? "Analyzing..." : "Get AI Critique")
-                            }
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(.vertical, 16)
-                            .padding(.horizontal, 32)
-                            .background(
-                                LinearGradient(colors: [.purple, .blue], startPoint: .leading, endPoint: .trailing)
-                            )
-                            .cornerRadius(30)
-                            .shadow(radius: 10)
-                        }
-                        .padding(.bottom, 60)
-                        .disabled(cloudService.isAnalyzing)
-                    }
-                    
-                    // Sliding Critique Panel
-                    if showCritique {
-                        CritiqueView(service: cloudService, onDismiss: {
-                            showCritique = false
-                        })
-                        .transition(.move(edge: .bottom))
-                        .zIndex(2)
-                    }
-                }
-                .transition(.opacity.combined(with: .scale))
-            }
-            
-            // Floating Settings Panel
-            if showSettings {
-                VStack {
-                    Spacer()
-                    VStack(spacing: 20) {
-                        HStack {
-                            Text("AI Engine Settings")
-                                .font(.system(size: 18, weight: .bold))
-                            Spacer()
-                            Button(action: { showSettings = false }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.white.opacity(0.4))
-                                    .font(.title3)
-                            }
-                        }
-                        
-                        Picker("Provider", selection: $cloudService.selectedProvider) {
-                            ForEach(AIProvider.allCases) { provider in
-                                Text(provider.rawValue).tag(provider)
-                            }
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                        
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("\(cloudService.selectedProvider.rawValue) API Key")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.white.opacity(0.6))
-                            
-                            Group {
-                                if cloudService.selectedProvider == .anthropic {
-                                    SecureField("sk-ant-...", text: $cloudService.anthropicKey)
-                                } else if cloudService.selectedProvider == .gemini {
-                                    SecureField("AIza...", text: $cloudService.geminiKey)
-                                } else {
-                                    SecureField("sk-...", text: $cloudService.openaiKey)
-                                }
-                            }
-                            .textFieldStyle(PlainTextFieldStyle())
-                            .padding()
-                            .background(Color.white.opacity(0.1))
-                            .cornerRadius(10)
-                            .foregroundColor(.white)
-                        }
-                        
-                        Text("Changes take effect immediately for live scoring.")
-                            .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.4))
-                            .italic()
-                        
-                        Divider().background(Color.white.opacity(0.1))
-                        
-                        Button(role: .destructive, action: { showDeleteConfirmation = true }) {
-                            HStack {
-                                Image(systemName: "trash.fill")
-                                Text("Delete All Captured Photos")
-                            }
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.red)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.red.opacity(0.1))
-                            .cornerRadius(12)
-                        }
-                    }
-                    .padding(24)
-                    .background(BlurView(style: .systemMaterialDark).cornerRadius(30))
-                    .padding()
-                    .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 10)
-                }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .zIndex(5)
-                .alert("Delete All Photos?", isPresented: $showDeleteConfirmation) {
-                    Button("Cancel", role: .cancel) { }
-                    Button("Delete All", role: .destructive) {
-                        GalleryManager.shared.clearAll()
-                        showSettings = false
-                    }
-                } message: {
-                    Text("This will permanently remove all photos from your LensCoach gallery. This action cannot be undone.")
-                }
+        }
+        .sheet(isPresented: $showCritiqueSheet) {
+            if let image = cameraManager.capturedImage {
+                CritiqueView(
+                    coachEngine: cameraManager.gemmaCoach,
+                    image: image,
+                    onDismiss: { showCritiqueSheet = false }
+                )
             }
         }
-        .animation(.spring(), value: cameraManager.aestheticAnalyzer.aestheticScore)
-        .animation(.easeInOut, value: cameraManager.capturedImage != nil)
-        .animation(.spring(), value: showCritique)
-        .sheet(isPresented: $showGallery) {
+        .sheet(isPresented: $showGallerySheet) {
             GalleryView()
         }
     }
+}
+
+// MARK: - Subviews & Overlays
+
+/// Aerospace-style Horizon Level Reticle
+struct HorizonLevelReticle: View {
+    let tiltDegrees: Double
+    let isLevel: Bool
     
-    public func scoreColor(_ score: Float) -> Color {
-        if score > 0.7 { return .green }
-        if score > 0.4 { return .yellow }
-        return .red
+    var body: some View {
+        HStack(spacing: 24) {
+            // Left Horizon Hash
+            Rectangle()
+                .fill(isLevel ? Color.emerald : Color.white.opacity(0.5))
+                .frame(width: 44, height: isLevel ? 3 : 1.5)
+            
+            // Center Reticle
+            ZStack {
+                Circle()
+                    .stroke(isLevel ? Color.emerald : Color.white.opacity(0.4), lineWidth: 1.5)
+                    .frame(width: 14, height: 14)
+                
+                Circle()
+                    .fill(isLevel ? Color.emerald : Color.white)
+                    .frame(width: 4, height: 4)
+            }
+            
+            // Right Horizon Hash
+            Rectangle()
+                .fill(isLevel ? Color.emerald : Color.white.opacity(0.5))
+                .frame(width: 44, height: isLevel ? 3 : 1.5)
+        }
+        .rotationEffect(.degrees(tiltDegrees))
+        .animation(.interactiveSpring(response: 0.15, dampingFraction: 0.7), value: tiltDegrees)
+        .overlay(
+            // Degree Indicator
+            VStack {
+                Spacer().frame(height: 36)
+                Text(String(format: "%+.1f°", tiltDegrees))
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(isLevel ? .emerald : .white.opacity(0.6))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(BlurView(style: .systemUltraThinMaterialDark).clipShape(Capsule()))
+            }
+        )
     }
 }
 
-public struct ScoreRing: View {
-    var score: Float
+/// Floating Live Coach Capsule
+struct LiveCoachCapsule: View {
+    let tip: LiveTip
     
-    public var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.white.opacity(0.1), lineWidth: 8)
-                .frame(width: 80, height: 80)
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: tip.action.iconName)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.emerald)
+                .frame(width: 28)
             
-            Circle()
-                .trim(from: 0, to: CGFloat(score))
-                .stroke(scoreColor(score), lineWidth: 8)
-                .frame(width: 80, height: 80)
-                .rotationEffect(.degrees(-90))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("COACH TIP")
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundColor(.emerald)
+                
+                Text(tip.text)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             
-            Text(String(format: "%.0f", score * 100))
-                .font(.system(size: 24, weight: .bold, design: .monospaced))
-                .foregroundColor(.white)
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            BlurView(style: .systemUltraThinMaterialDark)
+                .cornerRadius(18)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.4), radius: 10, x: 0, y: 4)
+        .animation(.spring(), value: tip.text)
+    }
+}
+
+/// Aesthetic Score Pill (CoreML Neural Engine)
+struct AestheticScorePill: View {
+    let score: Float
+    
+    var color: Color {
+        if score >= 0.70 { return .emerald }
+        if score >= 0.45 { return .yellow }
+        return .orange
+    }
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.2), lineWidth: 2.5)
+                    .frame(width: 22, height: 22)
+                
+                Circle()
+                    .trim(from: 0, to: CGFloat(min(1.0, max(0.0, score))))
+                    .stroke(color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                    .frame(width: 22, height: 22)
+                    .rotationEffect(.degrees(-90))
+            }
+            
+            VStack(alignment: .leading, spacing: 0) {
+                Text(String(format: "%.1f", score * 10))
+                    .font(.system(size: 14, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                Text("SCORE")
+                    .font(.system(size: 7, weight: .black))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(BlurView(style: .systemUltraThinMaterialDark).clipShape(Capsule()))
+    }
+}
+
+/// Dynamic Salient Subject Box
+struct SubjectFocusBox: View {
+    let normalizedRect: CGRect
+    
+    var body: some View {
+        GeometryReader { geo in
+            let frame = CGRect(
+                x: normalizedRect.origin.x * geo.size.width,
+                y: (1.0 - normalizedRect.origin.y - normalizedRect.size.height) * geo.size.height,
+                width: normalizedRect.size.width * geo.size.width,
+                height: normalizedRect.size.height * geo.size.height
+            )
+            
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.white.opacity(0.4), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+                .frame(width: max(40, frame.width), height: max(40, frame.height))
+                .position(x: frame.midX, y: frame.midY)
+                .animation(.interactiveSpring(), value: normalizedRect)
         }
     }
-    
-    func scoreColor(_ score: Float) -> Color {
-        if score > 0.7 { return .green }
-        if score > 0.4 { return .yellow }
-        return .red
+}
+
+/// Rule of Thirds Viewfinder Grid
+struct GridOverlay: View {
+    var body: some View {
+        GeometryReader { geo in
+            Path { path in
+                let w = geo.size.width
+                let h = geo.size.height
+                
+                // Vertical grid lines
+                path.move(to: CGPoint(x: w / 3.0, y: 0))
+                path.addLine(to: CGPoint(x: w / 3.0, y: h))
+                path.move(to: CGPoint(x: 2 * w / 3.0, y: 0))
+                path.addLine(to: CGPoint(x: 2 * w / 3.0, y: h))
+                
+                // Horizontal grid lines
+                path.move(to: CGPoint(x: 0, y: h / 3.0))
+                path.addLine(to: CGPoint(x: w, y: h / 3.0))
+                path.move(to: CGPoint(x: 0, y: 2 * h / 3.0))
+                path.addLine(to: CGPoint(x: w, y: 2 * h / 3.0))
+            }
+            .stroke(Color.white.opacity(0.25), lineWidth: 0.75)
+        }
     }
 }
 
-// Helper for glassmorphism effect
+/// Reusable Glassmorphism Background
 public struct BlurView: UIViewRepresentable {
     public var style: UIBlurEffect.Style
     
@@ -585,42 +373,5 @@ public struct BlurView: UIViewRepresentable {
     
     public func updateUIView(_ uiView: UIVisualEffectView, context: Context) {
         uiView.effect = UIBlurEffect(style: style)
-    }
-}
-
-public struct ModeButtonView: View {
-    var title: String
-    var subtitle: String
-    var icon: String
-    var color: Color
-    
-    public var body: some View {
-        HStack(spacing: 20) {
-            Image(systemName: icon)
-                .font(.system(size: 30))
-                .foregroundColor(color)
-                .frame(width: 60)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 18, weight: .black))
-                    .foregroundColor(.white)
-                Text(subtitle)
-                    .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .foregroundColor(.white.opacity(0.3))
-        }
-        .padding()
-        .background(Color.white.opacity(0.1))
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(color.opacity(0.3), lineWidth: 1)
-        )
     }
 }

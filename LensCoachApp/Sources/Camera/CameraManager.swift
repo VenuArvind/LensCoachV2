@@ -3,37 +3,29 @@ import UIKit
 import CoreImage
 import Combine
 
-public enum ScoringMode {
-    case local, cloud
-}
-
+/// High-performance camera session manager for LensCoach 2.0
+/// Feeds camera sample buffers to the PerceptionEngine (CoreML Neural Engine)
+/// and triggers the GemmaCoachEngine on-device advice loop.
 public class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputSampleBufferDelegate, AVCapturePhotoCaptureDelegate {
     @Published public var currentFrame: CVPixelBuffer?
     @Published public var capturedImage: UIImage?
-    @Published public var aestheticAnalyzer = AestheticAnalyzer()
-    @Published public var tipGenerator = LLMTipGenerator()
-    @Published public var cloudScoringService = CloudScoringService()
-    @Published public var cloudCritiqueService = CloudCritiqueService()
     
-    @Published public var scoringMode: ScoringMode = .local {
-        didSet {
-            if scoringMode == .cloud {
-                startCloudScoringTimer()
-            } else {
-                stopCloudScoringTimer()
-                aestheticAnalyzer.resetSmoother()
-            }
-        }
-    }
+    // Core 2.0 AI Engines
+    @Published public var perceptionEngine = PerceptionEngine.shared
+    @Published public var gemmaCoach = GemmaCoachEngine.shared
+    
+    // Grid & HUD State
+    @Published public var isGridEnabled: Bool = true
+    @Published public var isHorizonLevelGuideEnabled: Bool = true
     
     public let session = AVCaptureSession()
     private let videoOutput = AVCaptureVideoDataOutput()
     private let photoOutput = AVCapturePhotoOutput()
     private let sessionQueue = DispatchQueue(label: "com.lenscoach.sessionQueue")
-    private let videoOutputQueue = DispatchQueue(label: "com.lenscoach.videoOutputQueue")
+    private let videoOutputQueue = DispatchQueue(label: "com.lenscoach.videoOutputQueue", qos: .userInteractive)
     
-    private var frameCount = 0
-    private var cloudScoringTimer: Timer?
+    private var frameCounter: Int = 0
+    private var lastCoachEvaluationTime: Date = .distantPast
     
     public override init() {
         super.init()
@@ -41,29 +33,33 @@ public class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutput
     }
     
     public func setupSession() {
-        sessionQueue.async {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
             self.session.beginConfiguration()
             
-            // 1. Setup Input
-            guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
-                  let videoDeviceInput = try? AVCaptureDeviceInput(device: videoDevice),
-                  self.session.canAddInput(videoDeviceInput) else {
-                print("Could not add video device input to the session")
-                return
+            // 1. Setup Wide Angle Input
+            if let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+               let videoDeviceInput = try? AVCaptureDeviceInput(device: videoDevice),
+               self.session.canAddInput(videoDeviceInput) {
+                self.session.addInput(videoDeviceInput)
+            } else {
+                print("CameraManager: Could not configure back camera input")
             }
-            self.session.addInput(videoDeviceInput)
             
-            // 2. Setup Video Output (for live inference)
+            // 2. Setup Video Frame Output (30fps BGRA for CoreML/Metal pipeline)
             if self.session.canAddOutput(self.videoOutput) {
                 self.session.addOutput(self.videoOutput)
                 self.videoOutput.alwaysDiscardsLateVideoFrames = true
                 self.videoOutput.setSampleBufferDelegate(self, queue: self.videoOutputQueue)
-                self.videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
+                self.videoOutput.videoSettings = [
+                    kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)
+                ]
             }
             
-            // 3. Setup Photo Output (for cloud critique)
+            // 3. Setup High-Res Photo Output
             if self.session.canAddOutput(self.photoOutput) {
                 self.session.addOutput(self.photoOutput)
+                self.photoOutput.isHighResolutionCaptureEnabled = true
             }
             
             self.session.sessionPreset = .photo
@@ -72,7 +68,8 @@ public class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutput
     }
     
     public func start() {
-        sessionQueue.async {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
             if !self.session.isRunning {
                 self.session.startRunning()
             }
@@ -80,7 +77,8 @@ public class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutput
     }
     
     public func stop() {
-        sessionQueue.async {
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
             if self.session.isRunning {
                 self.session.stopRunning()
             }
@@ -89,39 +87,13 @@ public class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutput
     
     public func capturePhoto() {
         let settings = AVCapturePhotoSettings()
+        settings.isHighResolutionPhotoEnabled = true
         photoOutput.capturePhoto(with: settings, delegate: self)
-    }
-    
-    private func startCloudScoringTimer() {
-        cloudScoringTimer?.invalidate()
-        cloudScoringTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            self?.performCloudScoring()
-        }
-    }
-    
-    private func stopCloudScoringTimer() {
-        cloudScoringTimer?.invalidate()
-        cloudScoringTimer = nil
-    }
-    
-    private func performCloudScoring() {
-        guard scoringMode == .cloud, let pixelBuffer = currentFrame else { return }
         
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        let context = CIContext()
-        guard let cgImage = context.createCGImage(ciImage, from: ciImage.extent) else { return }
-        let uiImage = UIImage(cgImage: cgImage)
-        
-        cloudScoringService.fetchScores(
-            for: uiImage,
-            provider: cloudCritiqueService.selectedProvider,
-            key: cloudCritiqueService.currentKey
-        ) { [weak self] scores in
-            if let scores = scores {
-                self?.aestheticAnalyzer.updateScores(from: scores)
-                // Trigger tips based on cloud scores too
-                self?.tipGenerator.generateTipIfNeeded(scores: self?.aestheticAnalyzer.smoothedAttributes ?? [:])
-            }
+        // Haptic feedback on capture
+        DispatchQueue.main.async {
+            let impact = UIImpactFeedbackGenerator(style: .medium)
+            impact.impactOccurred()
         }
     }
     
@@ -130,22 +102,23 @@ public class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutput
     public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         
-        // Always update preview layer for UI smoothness
+        // Update viewfinder frame buffer on main thread
         DispatchQueue.main.async {
             self.currentFrame = pixelBuffer
             DiagnosticsManager.shared.reportFrame()
         }
         
-        // Frame Sampling: Every 2nd frame for local inference
-        frameCount += 1
-        guard frameCount % 2 == 0 else { return }
+        // Process Neural Engine FrameScore on every 2nd frame (15-20 FPS)
+        frameCounter += 1
+        guard frameCounter % 2 == 0 else { return }
         
-        if scoringMode == .local {
-            // Feed to ML Scorer
-            aestheticAnalyzer.analyze(pixelBuffer: pixelBuffer)
-            
-            // Trigger Tip Generator if needed (checks its own 2.5s debounce)
-            tipGenerator.generateTipIfNeeded(scores: aestheticAnalyzer.smoothedAttributes)
+        perceptionEngine.processFrame(pixelBuffer: pixelBuffer)
+        
+        // Trigger Gemma Coach evaluation check
+        let now = Date()
+        if now.timeIntervalSince(lastCoachEvaluationTime) >= 1.5 {
+            lastCoachEvaluationTime = now
+            gemmaCoach.evaluateViewfinder(telemetry: perceptionEngine.currentTelemetry)
         }
     }
     
@@ -153,22 +126,30 @@ public class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutput
     
     public func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         if let error = error {
-            print("Error capturing photo: \(error)")
+            print("CameraManager photo error: \(error)")
             return
         }
         
         guard let data = photo.fileDataRepresentation(),
               let image = UIImage(data: data) else { return }
         
-        // Save to Gallery
+        // Save to Gallery with real-time aesthetic telemetry
         GalleryManager.shared.savePhoto(
             image,
-            aestheticScore: aestheticAnalyzer.aestheticScore,
-            attributes: aestheticAnalyzer.smoothedAttributes
+            aestheticScore: perceptionEngine.currentTelemetry.aestheticScore,
+            attributes: perceptionEngine.currentTelemetry.attributes
         )
         
         DispatchQueue.main.async {
             self.capturedImage = image
+        }
+        
+        // Trigger on-device deep critique
+        Task {
+            _ = await self.gemmaCoach.analyzeCapturedPhoto(
+                image: image,
+                telemetry: self.perceptionEngine.currentTelemetry
+            )
         }
     }
 }

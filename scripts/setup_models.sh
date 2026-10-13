@@ -1,22 +1,24 @@
 #!/bin/bash
+set -e
 
-# LensCoach Model Setup Script
-# This script downloads the required 2.2GB LLM model and places it in the correct Resources directory.
+# LensCoach 2.0 - Gemma 4 E2B On-Device Model Setup Script
+# Downloads the Google AI Edge LiteRT container for Gemma 4 E2B
 
 RESOURCES_DIR="LensCoachApp/Sources/Resources"
-PHI3_URL="https://huggingface.co/microsoft/Phi-3-mini-4k-instruct-gguf/resolve/main/Phi-3-mini-4k-instruct-q4.gguf"
+MODEL_FILENAME="gemma-4-E2B-it-gpu.litertlm"
+MODEL_URL="https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/${MODEL_FILENAME}"
 
-echo "🎯 Starting LensCoach Model Setup..."
+echo "🎯 Starting LensCoach 2.0 Model Setup (Gemma 4 E2B)..."
 
-# Create directory if it doesn't exist
 mkdir -p "$RESOURCES_DIR"
 
-# Download Phi-3 Model
-if [ ! -f "$RESOURCES_DIR/Phi-3-mini-4k-instruct-q4.gguf" ]; then
-    echo "⬇️ Downloading Phi-3 Mini (2.2GB)... This may take a few minutes."
-    curl -L "$PHI3_URL" -o "$RESOURCES_DIR/Phi-3-mini-4k-instruct-q4.gguf"
+if [ -f "$RESOURCES_DIR/$MODEL_FILENAME" ]; then
+    echo "✅ Gemma 4 E2B model already exists at $RESOURCES_DIR/$MODEL_FILENAME"
 else
-    echo "✅ Phi-3 model already exists."
+    echo "⬇️ Downloading Gemma 4 E2B GPU model (~1.9 GB)..."
+    echo "Target: $RESOURCES_DIR/$MODEL_FILENAME"
+    curl -L "$MODEL_URL" -o "$RESOURCES_DIR/$MODEL_FILENAME"
+    echo "✅ Download complete."
 fi
 
-echo "✨ Setup complete! You can now open LensCoachNative/LensCoachNative.xcodeproj and build the app."
+echo "✨ Ready for on-device compilation and execution!"

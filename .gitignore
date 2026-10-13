@@ -28,6 +28,8 @@ lenscoach_interview_prep.md*
 lenscoach_validation_guide.md*
 
 # Project Data & Models
-Training/
+Training/data/
+Training/generated_dataset/
+Training/gemma4_lenscoach_adapters/
 Models/
 LensCoach/

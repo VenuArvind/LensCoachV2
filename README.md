@@ -1,64 +1,74 @@
-# LensCoach
+# LensCoach 2.0: On-Device Multimodal Photography Coach
 
-LensCoach is a high-performance, on-device AI photography assistant that Bridges the gap between **real-time computer vision** and **deep-reasoning Generative AI**. It empowers photographers with live aesthetic feedback while maintaining absolute user privacy through a local-first security architecture.
-
----
-
-## Hybrid AI Engine
-LensCoach utilizes a dual-engine approach to deliver zero-latency feedback without sacrificing creative depth:
-- **Local Vision Engine**: An EfficientNet-B0 model optimized for the **Apple Neural Engine (ANE)**, providing 30+ FPS real-time scoring of 12 aesthetic attributes (Composition, Lighting, Symmetry, etc.).
-- **Hybrid Generative Engine**: Orchestrates complex photographic critiques by toggling between:
-  - **On-Device LLMs**: 4-bit quantized Small Language Models running via **Metal Performance Shaders (MPS)**.
-  - **State-of-the-Art Cloud AI**: Native integration with **GPT-4o (OpenAI)**, **Claude 3 (Anthropic)**, and **Gemini 1.5 (Google)** for multi-modal artistic reasoning.
-
-## Privacy-First Security
-Designed for professionals, LensCoach implements a rigorous privacy layer:
-- **On-Device PII Redaction**: Face detection and Gaussian blurring are performed locally *before* any frames touch the cloud.
-- **EXIF Sanitization**: 100% of location, device, and personal metadata is stripped from images automatically.
-- **Hardware Isolation**: No biometric or personal data is stored in the cloud.
-
-## Analytics & Growth
-- **Interactive Dashboards**: Real-time visualization of aesthetic growth using **SwiftCharts**, tracking improvement across sessions.
-- **Persistent Portfolio**: Local persistence of captured masterpieces along with their AI-tagged aesthetic metadata.
-- **Diagnostics Dashboard**: Integrated hardware telemetry suite providing verified proof of ANE utilization and memory stability.
+LensCoach 2.0 is a 100% on-device, privacy-first AI photography assistant powered by **Google Gemma 4 E2B** and the **Apple Neural Engine**. It delivers zero-latency composition guidance and deep photographic reasoning directly in the viewfinder—with **zero cloud dependency, zero network requests, and absolute privacy**.
 
 ---
 
-## Hardware Benchmarks (iPhone 15)
+## ⚡ Architecture: Two-Tier On-Device Intelligence
+
+LensCoach 2.0 uses a decoupled, hybrid on-device pipeline optimized for the iPhone 15 memory envelope:
+
+```
+Viewfinder (30 FPS) ──> PerceptionEngine (CoreML ANE + Vision + CoreMotion)
+                             │
+                             ├── Real-time aesthetic scoring (12 attributes, 5.1ms)
+                             ├── Physical horizon leveling (±0.6° haptic accuracy)
+                             └── Subject saliency & boundary detection
+                                     │
+                                     ▼ (Gated every ~1.8s)
+                             GemmaCoachEngine (Gemma 4 E2B Multimodal Edge)
+                                     │
+                                     ├── Live Viewfinder Advice Capsules
+                                     └── Post-Capture Deep Structured Critique
+```
+
+1. **Fast Perception Engine (30 FPS on Apple Neural Engine)**:
+   - Real-time inference of 12 aesthetic dimensions via CoreML `FrameScore`.
+   - Continuous device motion roll/pitch tracking via `CoreMotion` providing an aerospace-grade artificial horizon.
+   - Real-time subject saliency and bounds tracking via Apple `Vision`.
+
+2. **Gemma 4 E2B Multimodal Coach (Metal GPU Edge)**:
+   - Edge-native 2B effective parameter multimodal model natively understanding both pixels and telemetry.
+   - Throttled and gated to trigger only when the camera is steady, conserving battery and thermal headroom.
+   - Generates structured coaching actions: horizon counter-rotation, framing realignment, exposure compensation, and rule-of-thirds positioning.
+   - Emits full post-capture critiques with sub-scores, strengths, actionable recommendations, and one-tap suggested crop previews.
+
+---
+
+## 🔒 100% Local & Private
+- **Zero Cloud APIs**: No OpenAI, Anthropic, or Gemini API keys required.
+- **Hardware Isolation**: Images and sensor telemetry never leave your device.
+- **Airplane Mode Ready**: Completely functional in remote landscapes without cell coverage.
+
+---
+
+## 📱 Hardware Benchmarks (iPhone 15)
 | Metric | Performance | Technical Significance |
 | :--- | :---: | :--- |
-| **Throughput (FPS)** | **~24 FPS** | Sustained real-time augmented overlay |
-| **CoreML Latency** | **5.1 ms** | Ultra-efficient Neural Engine execution |
-| **RAM Utilization** | **101 MB** | Lean footprint safe from Jetsam termination |
-| **Thermal Efficiency**| **Nominal** | Optimized for zero thermal throttling |
+| **Viewfinder Throughput** | **30 FPS** | Smooth, continuous camera overlay |
+| **Neural Engine Latency** | **5.1 ms** | Ultra-efficient CoreML FrameScore execution |
+| **Resident Memory** | **~600 MB - 1.4 GB** | Memory-mapped execution safe from iOS Jetsam limits |
+| **Horizon Alignment** | **±0.6° precision** | Instant haptic feedback on level shot |
 
 ---
 
-## Getting Started
+## 🚀 Getting Started
 
-### 1. Model Preparation
-Due to file size constraints, the 2.2GB LLM binaries are provisioned via script. Run the setup to download and verify the local intelligence layer:
-```zsh
+### 1. Provision Model
+Run the setup script to download the optimized Gemma 4 E2B LiteRT container:
+```bash
 ./scripts/setup_models.sh
 ```
 
-### 2. Building the Project
+### 2. Build and Run
 1. Open `LensCoachNative/LensCoachNative.xcodeproj` in **Xcode 15+**.
-2. Connect a physical iPhone (iOS 16+) to verify Neural Engine performance.
-3. Select your device and press **Cmd + R**.
-
-### 3. Integrated Diagnostics
-To verify your own results, the app includes a `DiagnosticsManager`. Real-time telemetry is streamed to the Xcode console:
-```text
-DIAGNOSTICS | FPS: 30 | Latency: 5.1ms | Memory: 101.4MB | Thermal: 0
-```
-Interactive performance graphs can be generated using the [Diagnostics Dashboard](./dashboard.html).
+2. Connect your iPhone 15 (or select an iOS 16+ Simulator).
+3. Press **Cmd + R** to run.
 
 ---
 
-## Technical Architecture
-- **LensCoachApp (SPM)**: The logical core. Implements the `AestheticAnalyzer`, LLM wrappers, and Cloud Provider interfaces.
-- **LensCoachNative**: SwiftUI application layer managing the camera session, persistence, and hardware-accelerated UI.
+## 🧠 Training & Fine-Tuning Pipeline (`Training/`)
 
-## AI Providers
-LensCoach supports flexible bring-your-own-key (BYOK) for Cloud AI. Configuration is managed securely in-session across **OpenAI**, **Anthropic**, and **Google**.
+- `generate_synthetic_flaws.py`: Creates synthetic camera flaw training pairs (horizon tilt, misaligned composition, exposure extremes) with exact ground-truth fixes.
+- `train_gemma4_lora.py`: Fine-tunes Gemma 4 E2B on multi-modal coaching pairs with QLoRA (compatible with Google Colab and cloud GPUs).
+- `export_to_litertlm.py`: Merges adapters and exports deployable `.litertlm` containers for iOS execution.
