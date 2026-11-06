@@ -77,12 +77,12 @@ Evaluated on **200 held-out synthetic photographic flaws** (`Training/evaluate_g
 
 ## Quantization & Edge Deployment Architecture
 
-| Pipeline Stage | Model Identifier | Precision & Quantization Recipe | Target Hardware Engine | Memory Footprint |
-| :--- | :--- | :--- | :--- | :--- |
-| **Aesthetic Scoring** | `FrameScore.mlmodelc` | Float16 CoreML MLProgram | Apple Neural Engine (ANE) | 18 MB |
-| **Face & Saliency** | Apple Vision Framework | Native OS Hardware Pipeline | CPU / ANE | Shared OS memory |
-| **Coaching Engine** | `gemma-4-E2B-it-gpu.litertlm` | **Dynamic INT8 (`dynamic_wi8_afp32`)** | iOS Metal GPU (LiteRT-LM) | ~1.38 GB |
-| **Post-Shot Edits** | `CoreImageEditService` | Float32 GPU Shader Pipeline | Apple Metal GPU | In-place texture buffers |
+| Pipeline Stage | Model Identifier | Precision & Quantization Recipe | Target Hardware Engine | Memory Footprint | Validation Metric |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Aesthetic Scoring** | `FrameScore.mlmodelc` | Float16 CoreML MLProgram | Apple Neural Engine (ANE) | 18 MB | **SRCC = 0.682** (AADB test split) |
+| **Face & Saliency** | Apple Vision Framework | Native OS Hardware Pipeline | CPU / ANE | Shared OS memory | Sub-pixel eye & headroom anchors |
+| **Coaching Engine** | `gemma-4-E2B-it-gpu.litertlm` | **Dynamic INT8 (`dynamic_wi8_afp32`)** | iOS Metal GPU (LiteRT-LM) | ~1.38 GB | **97.5%** schema validity (held-out flaws) |
+| **Post-Shot Edits** | `CoreImageEditService` | Float32 GPU Shader Pipeline | Apple Metal GPU | In-place texture buffers | Parametric Metal shader dispatch |
 
 > **Architecture Clarification:** V1 of LensCoach previously experimented with 4-bit GGUF via llama.cpp (`Phi-3-mini-4k-instruct-q4.gguf`). V2 completely replaces this with a native Google AI Edge LiteRT container running **Dynamic INT8** on Metal GPU, enabling direct multimodal frame grounding and stable thermal budgeting.
 
