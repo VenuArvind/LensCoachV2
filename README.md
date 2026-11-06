@@ -16,7 +16,7 @@
 
 ```
 +-----------------------------------------------------------+
-|  [ 30 FPS ]  [ ANE: 5.2ms ]  [ LiteRT: INT8 ]  [ Level ]  |
+|  [ 30 FPS ]  [ Latency: 36ms ]  [ LiteRT: INT8 ]  [ Level ]  |
 |                                                           |
 |                       [ Face Box ]                        |
 |                     +--------------+                      |
@@ -45,7 +45,24 @@ open LensCoachNative/LensCoachNative.xcodeproj
 
 ---
 
-## Fine-Tuning Evaluation: Base Gemma 4 E2B vs. QLoRA Adapter
+## Empirical Benchmarks & Hardware Profiling
+
+### 1. Physical iPhone 15 Profiling (10-Minute Continuous Session)
+
+Profiled on a physical **iPhone 15 (`iPhone15,4`)** during a continuous 10-minute active viewfinder session with live frame ingestion and inference logging via `DiagnosticsManager` (`diagnostics_session_10min.csv`):
+
+| Metric | P50 (Median) | P95 Latency | Mean Latency / Rate | Performance Bounds |
+| :--- | :---: | :---: | :---: | :--- |
+| **Viewfinder Cadence** | **30.00 FPS** | **30.00 FPS** | **27.20 FPS** | Sustained real-time camera ingestion |
+| **Perception Latency** | **36.10 ms** | **40.72 ms** | **34.72 ms** | End-to-end frame processing & inference |
+| **Resident Memory RSS** | **75.20 MB** | **99.60 MB** | **75.08 MB** | **Peak: 118.30 MB** (< 120 MB envelope) |
+| **Thermal State** | **Nominal (State 0)** | **Nominal (State 0)** | **100.0% Nominal** | **0% throttling or thermal drops** |
+
+*Raw telemetry (606 continuous seconds) committed in [`diagnostics_session_10min.csv`](diagnostics_session_10min.csv).*
+
+---
+
+### 2. Fine-Tuning Evaluation: Base Gemma 4 E2B vs. QLoRA Adapter
 
 Evaluated on **200 held-out synthetic photographic flaws** (`Training/evaluate_gemma4_flaws.py`) across tilt, underexposure, overexposure, and framing clipping:
 
