@@ -80,22 +80,6 @@ Evaluated on **200 held-out synthetic photographic flaws** (`Training/evaluate_g
 
 ---
 
-### 3. Apple Silicon Native Perception Benchmark & Dashboard
-
-Evaluated live on Apple Silicon Neural Engine + Apple Vision Framework across real photographic test frames (`scripts/benchmark_v2_suite.swift`):
-
-| Pipeline Component | P50 Latency | P95 Latency | Mean Latency | Execution Engine |
-| :--- | :---: | :---: | :---: | :--- |
-| **CoreML FrameScore (Aesthetic)** | **1.05 ms** | **1.17 ms** | **1.03 ms** | Apple Neural Engine (ANE) |
-| **Vision Face Detection & Saliency** | **4.96 ms** | **9.70 ms** | **6.99 ms** | Apple Vision Framework |
-| **Total Perception Pipeline** | **6.01 ms** | **10.87 ms** | **8.02 ms** | ANE + Vision (Unified Loop) |
-
-* **Aesthetic Scoring Correlation:** **SRCC = 0.5560** on test frames (Validation MSE = **0.0240**).
-* **Perception Loop Throughput Budget:** **124.7 FPS** (comfortably exceeding the 30 FPS camera ingest rate).
-* **Interactive Dashboard:** Open [`v2_dashboard.html`](v2_dashboard.html) in your browser to view real-time latency distributions and correlation scatter plots. Raw telemetry saved to [`benchmarks/v2_benchmark_results.json`](benchmarks/v2_benchmark_results.json).
-
----
-
 ## Quantization & Edge Deployment Architecture
 
 | Pipeline Stage | Model Identifier | Precision & Quantization Recipe | Target Hardware Engine | Memory Footprint |
