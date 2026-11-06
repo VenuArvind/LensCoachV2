@@ -20,6 +20,8 @@ xcuserdata/
 # Large Media / Models
 *.mlmodelc
 *.gguf
+*.litertlm
+*.bin
 
 # Performance & Interview Docs
 *.trace/

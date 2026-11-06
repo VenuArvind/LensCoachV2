@@ -1,0 +1,14 @@
+{
+  "Base Gemma 4 E2B (Zero-Shot)": {
+    "total_test_cases": 200,
+    "schema_validity_pct": 42.5,
+    "action_label_accuracy_pct": 38.0,
+    "horizon_angle_mae_deg": 3.28
+  },
+  "LensCoach QLoRA Gemma 4 E2B (Ours)": {
+    "total_test_cases": 200,
+    "schema_validity_pct": 97.5,
+    "action_label_accuracy_pct": 93.0,
+    "horizon_angle_mae_deg": 0.56
+  }
+}

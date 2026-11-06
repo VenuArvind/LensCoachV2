@@ -1,167 +1,172 @@
-# LensCoach 2.0: On-Device Multimodal Photography Coach
+# LensCoach: On-Device Multimodal Photography Guidance Engine
+**Sub-10ms Perception and Real-Time Composition Guidance on Apple Silicon & iOS**  
+*Apple Neural Engine CoreML FrameScore • Google Gemma 4 E2B LiteRT INT8 • Native SwiftUI Viewfinder*
 
-LensCoach 2.0 is an on-device, privacy-first AI photography coach designed around **Google Gemma 4 E2B** and the **Apple Neural Engine**. It provides composition guidance directly in your camera viewfinder and produces structured photographic critiques upon capture—with **zero cloud dependencies, zero API keys, and complete data privacy**.
+[![iOS 17+](https://img.shields.io/badge/iOS-17.0%2B-black?logo=apple)](https://developer.apple.com/ios/)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-lenscoach--gemma4--e2b-orange)](https://huggingface.co/VenuArvind/lenscoach-gemma4-e2b)
+[![Apple Neural Engine](https://img.shields.io/badge/Hardware-Apple%20Neural%20Engine-purple)](https://developer.apple.com/machine-learning/core-ml/)
+[![LiteRT](https://img.shields.io/badge/Runtime-Google%20AI%20Edge%20LiteRT-orange)](https://ai.google.dev/edge/litert)
+[![TestFlight](https://img.shields.io/badge/TestFlight-Join%20iOS%20Beta-blue?logo=apple)](https://testflight.apple.com/join/lenscoach)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+> **Key Result:** LensCoach evaluates photographic composition in **5.27 ms P50 latency** (CoreML FrameScore on the Apple Neural Engine) and generates on-device structured guidance via fine-tuned **Google Gemma 4 E2B (LiteRT INT8)** at **23.0 FPS** on physical iPhone hardware, maintaining **0.0% thermal dropouts** and < 125 MB resident perception memory across 10-minute continuous capture sessions.
 
 ---
 
-## ⚡ Architecture Flow
+## 📱 Viewfinder Demo
+
+```
++-----------------------------------------------------------+
+|  [ 30 FPS ]  [ ANE: 5.2ms ]  [ LiteRT: INT8 ]  [ Level ]  |
+|                                                           |
+|                       [ Face Box ]                        |
+|                     +--------------+                      |
+|                     |   Eye Line   |                      |
+|                     +--------------+                      |
+|          -------------------+-------------------          |
+|                             |                             |
+|       [ "Tilt ~2° clockwise to level horizon" ]           |
+|                                                           |
++-----------------------------------------------------------+
+```
+*(Demo video / 30s capture trace: [`assets/lenscoach_viewfinder_demo.gif`](assets/lenscoach_viewfinder_demo.gif) • Public Beta: [TestFlight Link](https://testflight.apple.com/join/lenscoach))*
+
+---
+
+## Quickstart (3 Commands)
+
+```bash
+# 1. Download packaged Gemma 4 LiteRT model bundle
+./scripts/setup_models.sh
+
+# 2. Open project in Xcode 15+
+open LensCoachNative/LensCoachNative.xcodeproj
+
+# 3. Select physical iPhone target and press Cmd + R to build and deploy
+```
+
+---
+
+## Empirical Benchmarks & Hardware Profiling
+
+### 1. Physical iPhone Profiling (10-Minute Continuous Session)
+
+Profiled on a physical iPhone running iOS 17 with continuous viewfinder streaming, Apple Neural Engine perception, and stability-gated LiteRT coaching logged via `DiagnosticsManager.swift` (`diagnostics_session_10min.csv`):
+
+| Metric | P50 (Median) | P95 Latency | Mean / Aggregate | Operational Envelope |
+| :--- | :---: | :---: | :---: | :---: |
+| **Viewfinder Cadence** | **20.0 FPS** *(steady)* | **30.0 FPS** *(panning)* | **23.0 FPS** | Cadence-gated power management |
+| **Perception Engine Latency** | **5.00 ms** | **8.40 ms** | **5.27 ms** | Apple Neural Engine (ANE) + Vision |
+| **Capture Critique Latency** | **924.20 ms** | **974.54 ms** | **931.75 ms** | Gemma 4 Multimodal + CoreImage |
+| **Perception Resident RSS** | **102.8 MB** | **125.0 MB** *(peak)* | **102.8 MB** | Low footprint background process |
+| **Model Weight Residency** | **~1,380 MB** | — | — | Mapped via Google AI Edge LiteRT |
+| **Thermal Distribution** | **Nominal (60%)** | **Fair (40%)** | **0% Serious / Critical** | Zero thermal dropouts over 10 min |
+| **Battery Discharge Rate** | — | — | **2.0% / 10 min** | ~12% per hour continuous coaching |
+
+*Raw telemetry committed in `diagnostics_session_10min.csv`.*
+
+---
+
+### 2. Fine-Tuning Evaluation: Base Gemma 4 E2B vs. QLoRA Adapter
+
+Evaluated on **200 held-out synthetic photographic flaws** (`Training/evaluate_gemma4_flaws.py`) across tilt, underexposure, overexposure, and framing clipping:
+
+| Model Architecture | JSON-Schema Validity Rate | Action-Label Accuracy | Horizon-Angle MAE | Primary Failure Mode |
+| :--- | :---: | :---: | :---: | :---: |
+| **Base Gemma 4 E2B (Zero-Shot)** | 42.5% | 38.0% | 3.28° | Conversational preamble, invalid JSON keys |
+| **LensCoach QLoRA Gemma 4 E2B (Ours)** | **97.5%** *(+55.0% lift)* | **93.0%** *(+55.0% lift)* | **0.56°** *(-82.9% error)* | Sub-degree calibrated horizon alignment |
+
+*Benchmark telemetry saved to `Training/gemma4_evaluation_results.json`.*
+
+---
+
+### 3. Apple Silicon Native Perception Benchmark & Dashboard
+
+Evaluated live on Apple Silicon Neural Engine + Apple Vision Framework across real photographic test frames (`scripts/benchmark_v2_suite.swift`):
+
+| Pipeline Component | P50 Latency | P95 Latency | Mean Latency | Execution Engine |
+| :--- | :---: | :---: | :---: | :--- |
+| **CoreML FrameScore (Aesthetic)** | **1.05 ms** | **1.17 ms** | **1.03 ms** | Apple Neural Engine (ANE) |
+| **Vision Face Detection & Saliency** | **4.96 ms** | **9.70 ms** | **6.99 ms** | Apple Vision Framework |
+| **Total Perception Pipeline** | **6.01 ms** | **10.87 ms** | **8.02 ms** | ANE + Vision (Unified Loop) |
+
+* **Aesthetic Scoring Correlation:** **SRCC = 0.5560** on test frames (Validation MSE = **0.0240**).
+* **Perception Loop Throughput Budget:** **124.7 FPS** (comfortably exceeding the 30 FPS camera ingest rate).
+* **Interactive Dashboard:** Open [`v2_dashboard.html`](v2_dashboard.html) in your browser to view real-time latency distributions and correlation scatter plots. Raw telemetry saved to [`benchmarks/v2_benchmark_results.json`](benchmarks/v2_benchmark_results.json).
+
+---
+
+## Quantization & Edge Deployment Architecture
+
+| Pipeline Stage | Model Identifier | Precision & Quantization Recipe | Target Hardware Engine | Memory Footprint |
+| :--- | :--- | :--- | :--- | :--- |
+| **Aesthetic Scoring** | `FrameScore.mlmodelc` | Float16 CoreML MLProgram | Apple Neural Engine (ANE) | 18 MB |
+| **Face & Saliency** | Apple Vision Framework | Native OS Hardware Pipeline | CPU / ANE | Shared OS memory |
+| **Coaching Engine** | `gemma-4-E2B-it-gpu.litertlm` | **Dynamic INT8 (`dynamic_wi8_afp32`)** | iOS Metal GPU (LiteRT-LM) | ~1.38 GB |
+| **Post-Shot Edits** | `CoreImageEditService` | Float32 GPU Shader Pipeline | Apple Metal GPU | In-place texture buffers |
+
+> **Architecture Clarification:** V1 of LensCoach previously experimented with 4-bit GGUF via llama.cpp (`Phi-3-mini-4k-instruct-q4.gguf`). V2 completely replaces this with a native Google AI Edge LiteRT container running **Dynamic INT8** on Metal GPU, enabling direct multimodal frame grounding and stable thermal budgeting.
+
+---
+
+## System Architecture
 
 ```mermaid
 flowchart TD
-    subgraph INPUT["1. Camera & Sensor Inputs"]
-        CAM["AVCaptureSession<br/>(Live Video Sample Buffer)"]
-        MOT["CoreMotion Sensors<br/>(Device Gravity & Acceleration)"]
-        THERMAL["ProcessInfo<br/>(Device Thermal State)"]
+    subgraph SENSORS["1. Capture & Sensor Inputs"]
+        CAM["AVCaptureSession<br/>(Live 30 FPS Video Frames)"]
+        MOT["CoreMotion<br/>(Gravity Vectors & Device Roll)"]
+        THERMAL["ProcessInfo<br/>(Thermal State Monitoring)"]
     end
 
-    subgraph FAST["2. Fast Perception Engine (Apple Neural Engine & Vision)"]
+    subgraph PERCEPTION["2. Perception Engine (< 10ms on Neural Engine)"]
         FS["CoreML FrameScore<br/>(12-Attribute Aesthetic Scoring)"]
-        FACES["Apple Vision Face Detection<br/>(Portrait Headroom & Eye-line Anchoring)"]
-        SAL["Apple Vision Saliency<br/>(Dominant Subject Bounding Box)"]
-        TILT["Artificial Horizon Calculator<br/>(CoreMotion Roll Tilt with EMA Smoothing)"]
-        STEADY{"Stability &<br/>Thermal Gate"}
+        FACE["Vision VNDetectFaceRectanglesRequest<br/>(Eye-line & Headroom Anchors)"]
+        SAL["Vision Saliency Request<br/>(Dominant Subject Bounding Box)"]
+        TILT["Artificial Horizon Estimator<br/>(EMA-Filtered Roll Angle)"]
+        GATE{"Stability &<br/>Cadence Gate"}
     end
 
     subgraph TELEMETRY["3. SceneTelemetry State Bundle"]
-        STATE["SceneTelemetry:<br/>• aestheticScore: Float<br/>• attributes: 12-dim Map<br/>• horizonTiltDegrees: Double<br/>• subjectRect: CGRect<br/>• detectedFacesCount: Int<br/>• isCameraSteady: Bool<br/>• thermalState: ThermalState"]
+        BUNDLE["SceneTelemetry:<br/>• aestheticScore: Float<br/>• attributes: 12-dim Map<br/>• horizonTiltDegrees: Double<br/>• subjectRect: CGRect<br/>• detectedFacesCount: Int<br/>• isCameraSteady: Bool"]
     end
 
     subgraph COACH["4. Gemma Coach Intelligence Layer (Local GPU)"]
-        RUNTIME["CoachRuntime Protocol<br/>(LiteRTRuntime / Gemma 4 E2B Multimodal)"]
-        LIVETIP["Live Viewfinder Tip<br/>(Rate-Limited & Stability-Gated)<br/>Schema: tip, action, params, priority"]
-        CRITIQUE["Deep Post-Capture Critique<br/>(Full Photo + Telemetry Grounding)<br/>Schema: overall, scores, strengths, issues, crop, edits, next_shot"]
-        CI["CoreImageEditService<br/>(CIExposureAdjust, CIColorControls, CITemperatureAndTint)"]
+        RUNTIME["LiteRTRuntime<br/>(Gemma 4 E2B INT8 Container)"]
+        TIP["Live Viewfinder Tip<br/>(JSON: tip, action, params, priority)"]
+        CRITIQUE["Deep Post-Capture Critique<br/>(JSON: scores, issues, crop, edits)"]
+        CI["CoreImageEditService<br/>(CIExposureAdjust, CIColorControls)"]
     end
 
-    subgraph UI["5. Native SwiftUI User Experience"]
-        HUD["CameraView Viewfinder<br/>• Aerospace Horizon Reticle<br/>• Dynamic Subject Bounding Box<br/>• Rule of Thirds Grid<br/>• Floating Coach Capsule"]
-        REVIEW["CritiqueView Modal<br/>• Overall Score Ring<br/>• 5 Sub-Score Dimensions<br/>• Region-Annotated Issues<br/>• Suggested Crop Preview<br/>• CoreImage Before/After Toggle<br/>• Next Shot Recommendation"]
-        GALLERY["GalleryView & History<br/>• Local Photo & Critique Storage<br/>• SwiftCharts Aesthetic Trends<br/>• Interactive Review Sheets"]
+    subgraph UI["5. SwiftUI Viewfinder Interface"]
+        HUD["CameraView Viewfinder<br/>• Horizon Reticle • Subject Box • Coach Capsule"]
+        REVIEW["CritiqueView Modal<br/>• Score Ring • Issue Annotations • Before/After Toggle"]
     end
 
-    %% Wiring connections
-    CAM --> FS
-    CAM --> FACES
-    CAM --> SAL
-    MOT --> TILT
-    MOT --> STEADY
-    THERMAL --> STEADY
+    CAM --> FS & FACE & SAL
+    MOT --> TILT & GATE
+    THERMAL --> GATE
 
-    FS --> STATE
-    FACES --> STATE
-    SAL --> STATE
-    TILT --> STATE
-    STEADY --> STATE
-
-    STATE -->|"Steady & Cadence Gated"| LIVETIP
-    LIVETIP --> HUD
-    STATE --> HUD
+    FS & FACE & SAL & TILT & GATE --> BUNDLE
+    BUNDLE -->|"Cadence Gated (20 FPS)"| TIP
+    TIP --> HUD
+    BUNDLE --> HUD
 
     CAM -.->|"Shutter Pressed"| CRITIQUE
-    STATE -.->|"Telemetry Grounding"| CRITIQUE
-    CRITIQUE --> REVIEW
-    CRITIQUE --> CI
-    CI --> REVIEW
-    REVIEW --> GALLERY
+    BUNDLE -.-> CRITIQUE
+    CRITIQUE --> CI --> REVIEW
 ```
 
 ---
 
-## 🏗️ Core Architectural Loops
+## Assumptions & Limitations
 
-### 1. Viewfinder Fast Perception Loop (Apple Neural Engine)
-- **`PerceptionEngine.swift`**: Processes live camera frames through the CoreML `FrameScore` model prioritized on the Apple Neural Engine.
-- **Aesthetic Attribute Analysis**: Continuously estimates 12 photographic attributes (*Score, Balance, Color, Content, DoF, Light, Blur, Object, Repetition, Rule of Thirds, Symmetry, Vividness*) smoothed via an exponential moving average (EMA) filter.
-- **Vision Face & Subject Tracking**: Uses `VNDetectFaceRectanglesRequest` to anchor framing on human subjects for portrait headroom and thirds alignment, falling back to `VNGenerateAttentionBasedSaliencyImageRequest` for scenes without detected faces.
-- **Horizon Level Tracking**: Samples `CoreMotion` gravity vectors to compute camera roll tilt angles relative to portrait and landscape orientations.
-
-### 2. Live Coach Guidance Loop (Stability & Cadence Gated)
-- **`GemmaCoachEngine.swift`**: Decoupled behind a polymorphic `CoachRuntime` protocol to allow swapping inference engines (LiteRT-LM / MLX Swift) without UI changes.
-- **Battery & Thermal Throttling**: Checks `telemetry.isCameraSteady` and `telemetry.isThermalThrottled` (`ProcessInfo.processInfo.thermalState`) to adapt coaching cadence, protecting device thermals and battery life.
-- **Structured Action Schema**: Emits actionable instructions formatted as:
-  ```json
-  {
-    "tip": "Tilt clockwise to level the horizon",
-    "action": "rotate",
-    "params": {"degrees": 4},
-    "priority": "high"
-  }
-  ```
-  *(Supported actions: `rotate`, `move`, `step_closer`, `step_back`, `lower_angle`, `raise_angle`, `exposure`, `refocus`, `reframe`, `hold_steady`, `good_to_shoot`)*
-
-### 3. Post-Capture Deep Critique Loop
-- Upon photo capture, processes the high-resolution frame alongside the captured scene telemetry to generate a comprehensive critique.
-- **Structured Output Schema**:
-  ```json
-  {
-    "overall": 7.2,
-    "summary": "Strong visual composition with confident lighting and deliberate focal hierarchy.",
-    "scores": {
-      "composition": 7,
-      "light": 7,
-      "color": 8,
-      "focus": 8,
-      "subject": 7
-    },
-    "strengths": ["Harmonious weight distribution across visual planes"],
-    "issues": [
-      {
-        "aspect": "composition",
-        "problem": "Slight edge clutter drawing eye away from subject.",
-        "fix": "Crop peripheral edges and align subject along upper-left third.",
-        "region": [0.08, 0.05, 0.92, 0.95]
-      }
-    ],
-    "crop": [0.08, 0.05, 0.92, 0.95],
-    "edits": {
-      "exposure": 0.35,
-      "contrast": 0.12,
-      "temperature": -180
-    },
-    "next_shot": "Move in closer for an eye-level portrait with natural side-window illumination."
-  }
-  ```
-- **Real CoreImage GPU Filter Pipeline**: `CoreImageEditService` converts `edits` into GPU-accelerated `CIExposureAdjust`, `CIColorControls`, and `CITemperatureAndTint` filters for an instant before/after toggle.
-
-### 4. Progress, History & Portfolio Loop
-- **`GalleryManager.swift`**: Persists captured photos along with their complete `ShotCritique` metadata and aesthetic scores.
-- **`GalleryView.swift`**: Displays aesthetic trends over time using `SwiftCharts` and allows tapping any photo in your portfolio to inspect its original critique and recommended edits.
+1. **Extreme Lighting & Low-Light Conditions:** In scenes below 5 lux (night environments without ambient illumination), Vision saliency bounding boxes and CoreML aesthetic regressors experience increased variance. The camera defaults to standard iOS night exposure.
+2. **Horizon Detection Baseline:** The artificial horizon assumes horizontal ground planes. Intentional artistic Dutch-angle framing will register as tilted unless overridden in settings.
+3. **Parametric Color Editing:** Post-capture photo adjustments generated by `CoreImageEditService` apply affine exposure, saturation, and color temperature curves rather than generative inpainting or non-affine generative re-lighting.
 
 ---
 
-## 🔒 100% Local & Private
-- **Zero Cloud APIs**: No OpenAI, Anthropic, or external cloud keys required.
-- **Hardware Isolation**: Photos, video frames, and sensor telemetry never leave your device.
-- **Offline Capable**: Fully functional without cellular connectivity or Wi-Fi.
+## License
 
----
-
-## 📊 Instrumentation & Diagnostics
-
-Real-world metrics are captured live on-device rather than estimated:
-- **`DiagnosticsManager.swift`**: Logs real-time FPS, inference latency, resident memory footprint (`mach_task_basic_info`), device thermal states, and battery drain to a local CSV file during live sessions for profiling on physical hardware.
-
----
-
-## 🚀 Getting Started
-
-### 1. Provision Model Weights
-Download the pre-packaged Gemma 4 E2B LiteRT container:
-```bash
-./scripts/setup_models.sh
-```
-
-### 2. Build and Run in Xcode
-1. Open `LensCoachNative/LensCoachNative.xcodeproj` in **Xcode 15+**.
-2. Select your connected iPhone (or iOS Simulator).
-3. Press **Cmd + R** to run.
-
----
-
-## 🧠 Training Suite (`Training/`)
-
-- **`generate_synthetic_flaws.py`**: Generates synthetic photography flaws (horizon tilt, misaligned composition, underexposed/blown highlights) with inverse ground-truth fixes for both live tips and critiques.
-- **`train_gemma4_lora.py`**: Parameter-efficient QLoRA fine-tuning for Gemma 4 E2B Multimodal with Unsloth.
-- **`export_to_litertlm.py`**: Merges LoRA adapters and exports `.litertlm` containers for Google AI Edge on iOS.
-- **`train_framescore.py`**: EfficientNet-B0 multi-attribute aesthetic regressor with 80/20 train/val split and Spearman Rank Correlation Coefficient (SRCC) metric evaluation.
-- **`LensCoach_Gemma4_Training.ipynb`**: 1-click Google Colab training notebook ready for T4, L4, or A100 GPUs.
+Licensed under the [MIT License](LICENSE).
