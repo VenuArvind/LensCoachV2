@@ -6,10 +6,9 @@
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-lenscoach--gemma4--e2b-orange)](https://huggingface.co/VenuArvind/lenscoach-gemma4-e2b)
 [![Apple Neural Engine](https://img.shields.io/badge/Hardware-Apple%20Neural%20Engine-purple)](https://developer.apple.com/machine-learning/core-ml/)
 [![LiteRT](https://img.shields.io/badge/Runtime-Google%20AI%20Edge%20LiteRT-orange)](https://ai.google.dev/edge/litert)
-[![TestFlight](https://img.shields.io/badge/TestFlight-Join%20iOS%20Beta-blue?logo=apple)](https://testflight.apple.com/join/lenscoach)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **Key Result:** LensCoach evaluates photographic composition in **5.27 ms P50 latency** (CoreML FrameScore on the Apple Neural Engine) and generates on-device structured guidance via fine-tuned **Google Gemma 4 E2B (LiteRT INT8)** at **23.0 FPS** on physical iPhone hardware, maintaining **0.0% thermal dropouts** and < 125 MB resident perception memory across 10-minute continuous capture sessions.
+> **Key Result:** Fine-tuned **Google Gemma 4 E2B (QLoRA INT8)** delivers calibrated composition guidance on device, achieving **97.5% JSON-schema compliance (+55.0% lift)**, **93.0% action-label accuracy (+55.0% lift)**, and reducing horizon angle mean absolute error from **3.28° to 0.56° (-82.9% error)** on held-out photographic flaw evaluations.
 
 ---
 
@@ -29,7 +28,6 @@
 |                                                           |
 +-----------------------------------------------------------+
 ```
-*(Demo video / 30s capture trace: [`assets/lenscoach_viewfinder_demo.gif`](assets/lenscoach_viewfinder_demo.gif) • Public Beta: [TestFlight Link](https://testflight.apple.com/join/lenscoach))*
 
 ---
 
@@ -47,27 +45,7 @@ open LensCoachNative/LensCoachNative.xcodeproj
 
 ---
 
-## Empirical Benchmarks & Hardware Profiling
-
-### 1. Physical iPhone Profiling (10-Minute Continuous Session)
-
-Profiled on a physical iPhone running iOS 17 with continuous viewfinder streaming, Apple Neural Engine perception, and stability-gated LiteRT coaching logged via `DiagnosticsManager.swift` (`diagnostics_session_10min.csv`):
-
-| Metric | P50 (Median) | P95 Latency | Mean / Aggregate | Operational Envelope |
-| :--- | :---: | :---: | :---: | :---: |
-| **Viewfinder Cadence** | **20.0 FPS** *(steady)* | **30.0 FPS** *(panning)* | **23.0 FPS** | Cadence-gated power management |
-| **Perception Engine Latency** | **5.00 ms** | **8.40 ms** | **5.27 ms** | Apple Neural Engine (ANE) + Vision |
-| **Capture Critique Latency** | **924.20 ms** | **974.54 ms** | **931.75 ms** | Gemma 4 Multimodal + CoreImage |
-| **Perception Resident RSS** | **102.8 MB** | **125.0 MB** *(peak)* | **102.8 MB** | Low footprint background process |
-| **Model Weight Residency** | **~1,380 MB** | — | — | Mapped via Google AI Edge LiteRT |
-| **Thermal Distribution** | **Nominal (60%)** | **Fair (40%)** | **0% Serious / Critical** | Zero thermal dropouts over 10 min |
-| **Battery Discharge Rate** | — | — | **2.0% / 10 min** | ~12% per hour continuous coaching |
-
-*Raw telemetry committed in `diagnostics_session_10min.csv`.*
-
----
-
-### 2. Fine-Tuning Evaluation: Base Gemma 4 E2B vs. QLoRA Adapter
+## Fine-Tuning Evaluation: Base Gemma 4 E2B vs. QLoRA Adapter
 
 Evaluated on **200 held-out synthetic photographic flaws** (`Training/evaluate_gemma4_flaws.py`) across tilt, underexposure, overexposure, and framing clipping:
 
