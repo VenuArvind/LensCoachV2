@@ -1,5 +1,5 @@
 # LensCoach: On-Device Multimodal Photography Guidance Engine
-**Sub-10ms Perception and Real-Time Composition Guidance on Apple Silicon & iOS**  
+**Real-Time On-Device Perception (36.1 ms P50) and Composition Guidance on Apple Silicon & iOS**  
 *Apple Neural Engine CoreML FrameScore • Google Gemma 4 E2B LiteRT INT8 • Native SwiftUI Viewfinder*
 
 [![iOS 17+](https://img.shields.io/badge/iOS-17.0%2B-black?logo=apple)](https://developer.apple.com/ios/)
@@ -8,7 +8,7 @@
 [![LiteRT](https://img.shields.io/badge/Runtime-Google%20AI%20Edge%20LiteRT-orange)](https://ai.google.dev/edge/litert)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-> **Key Result:** Fine-tuned **Google Gemma 4 E2B (QLoRA INT8)** delivers calibrated composition guidance on device, achieving **97.5% JSON-schema compliance (+55.0% lift)**, **93.0% action-label accuracy (+55.0% lift)**, and reducing horizon angle mean absolute error from **3.28° to 0.56° (-82.9% error)** on held-out photographic flaw evaluations.
+> **Key Result:** Fine-tuned **Google Gemma 4 E2B (QLoRA INT8)** delivers calibrated composition guidance on device, achieving **97.5% JSON-schema compliance (+55.0 pp)**, **93.0% action-label accuracy (+55.0 pp)**, and reducing horizon angle mean absolute error from **3.28° to 0.56° (-82.9% error)** on held-out synthetic photographic flaw evaluations.
 
 ---
 
@@ -55,7 +55,7 @@ Profiled on a physical **iPhone 15 (`iPhone15,4`)** during a continuous 10-minut
 | :--- | :---: | :---: | :---: | :--- |
 | **Viewfinder Cadence** | **30.00 FPS** | **30.00 FPS** | **27.20 FPS** | Sustained real-time camera ingestion |
 | **Perception Latency** | **36.10 ms** | **40.72 ms** | **34.72 ms** | End-to-end frame processing & inference |
-| **Resident Memory RSS** | **75.20 MB** | **99.60 MB** | **75.08 MB** | **Peak: 118.30 MB** (< 120 MB envelope) |
+| **Perception Pipeline RSS** | **75.20 MB** | **99.60 MB** | **75.08 MB** | **Peak: 118.30 MB** (SwiftUI + CoreML; excludes ~1.38 GB LiteRT GPU model) |
 | **Thermal State** | **Nominal (State 0)** | **Nominal (State 0)** | **100.0% Nominal** | **0% throttling or thermal drops** |
 
 *Raw telemetry (606 continuous seconds) committed in [`diagnostics_session_10min.csv`](diagnostics_session_10min.csv).*
@@ -69,7 +69,7 @@ Evaluated on **200 held-out synthetic photographic flaws** (`Training/evaluate_g
 | Model Architecture | JSON-Schema Validity Rate | Action-Label Accuracy | Horizon-Angle MAE | Primary Failure Mode |
 | :--- | :---: | :---: | :---: | :---: |
 | **Base Gemma 4 E2B (Zero-Shot)** | 42.5% | 38.0% | 3.28° | Conversational preamble, invalid JSON keys |
-| **LensCoach QLoRA Gemma 4 E2B (Ours)** | **97.5%** *(+55.0% lift)* | **93.0%** *(+55.0% lift)* | **0.56°** *(-82.9% error)* | Sub-degree calibrated horizon alignment |
+| **LensCoach QLoRA Gemma 4 E2B (Ours)** | **97.5%** *(+55.0 pp)* | **93.0%** *(+55.0 pp)* | **0.56°** *(-82.9% error)* | Sub-degree calibrated horizon alignment |
 
 *Benchmark telemetry saved to `Training/gemma4_evaluation_results.json`.*
 
@@ -98,7 +98,7 @@ flowchart TD
         THERMAL["ProcessInfo<br/>(Thermal State Monitoring)"]
     end
 
-    subgraph PERCEPTION["2. Perception Engine (< 10ms on Neural Engine)"]
+    subgraph PERCEPTION["2. Perception Engine (36.1ms P50 End-to-End)"]
         FS["CoreML FrameScore<br/>(12-Attribute Aesthetic Scoring)"]
         FACE["Vision VNDetectFaceRectanglesRequest<br/>(Eye-line & Headroom Anchors)"]
         SAL["Vision Saliency Request<br/>(Dominant Subject Bounding Box)"]
@@ -127,7 +127,7 @@ flowchart TD
     THERMAL --> GATE
 
     FS & FACE & SAL & TILT & GATE --> BUNDLE
-    BUNDLE -->|"Cadence Gated (20 FPS)"| TIP
+    BUNDLE -->|"Cooldown Gated (>= 1.8s / <= 0.55 Hz)"| TIP
     TIP --> HUD
     BUNDLE --> HUD
 
