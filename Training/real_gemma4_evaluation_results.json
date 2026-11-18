@@ -1,0 +1,1151 @@
+{
+  "base": {
+    "summary": {
+      "model_id": "google/gemma-4-E2B-it",
+      "device": "mps",
+      "dtype": "torch.bfloat16",
+      "n_synthetic": 20,
+      "n_real_aadb": 10,
+      "synth_strict_json_pct": 100.0,
+      "synth_any_json_pct": 100.0,
+      "synth_action_accuracy_pct": 25.0,
+      "tilt_mae_deg": null,
+      "tilt_parsed_count": 0,
+      "real_strict_json_pct": 80.0,
+      "real_any_json_pct": 80.0,
+      "latency_p50_ms": 2786.9,
+      "latency_p95_ms": 4406.4
+    },
+    "records": [
+      {
+        "id": "synth_test_00",
+        "split": "synthetic_flaw",
+        "flaw_type": "tilt",
+        "source_file": "farm1_342_19511016973_65619fbda7_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The image has a decent composition with the pier extending into the water. Consider adjusting the exposure to better balance the sky and the water.\", \"action\": \"exposure\", \"params\": {\"exposure\": \"auto\"}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The image has a decent composition with the pier extending into the water. Consider adjusting the exposure to better balance the sky and the water.",
+          "action": "exposure",
+          "params": {
+            "exposure": "auto"
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 10179.1
+      },
+      {
+        "id": "synth_test_01",
+        "split": "synthetic_flaw",
+        "flaw_type": "underexposed",
+        "source_file": "farm1_276_19990408449_24310c4b18_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The lighting in the image is somewhat flat, and the overall aesthetic is a bit muted. Consider adjusting exposure or adding a slight color grade for more vibrancy.\", \"action\": \"exposure\", \"params\": {\"exposure\": -0.3}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The lighting in the image is somewhat flat, and the overall aesthetic is a bit muted. Consider adjusting exposure or adding a slight color grade for more vibrancy.",
+          "action": "exposure",
+          "params": {
+            "exposure": -0.3
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2996.9
+      },
+      {
+        "id": "synth_test_02",
+        "split": "synthetic_flaw",
+        "flaw_type": "overexposed",
+        "source_file": "farm1_444_20191882705_b8ea5cddfd_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The image is a crowded indoor scene, likely a market or large hall. The focus is on the people and the general atmosphere. Consider adjusting exposure to balance the bright overhead lighting with the darker areas in the background.\", \"action\": \"good_to_shoot\", \"params\": {}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The image is a crowded indoor scene, likely a market or large hall. The focus is on the people and the general atmosphere. Consider adjusting exposure to balance the bright overhead lighting with the darker areas in the background.",
+          "action": "good_to_shoot",
+          "params": {},
+          "priority": "medium"
+        },
+        "latency_ms": 3136.2
+      },
+      {
+        "id": "synth_test_03",
+        "split": "synthetic_flaw",
+        "flaw_type": "framing",
+        "source_file": "farm1_562_19558360544_f0839db7f1_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Focus on the athlete's expression and body language to convey the intensity of the moment.\", \"action\": \"good_to_shoot\", \"params\": {\"camera_angle\": \"medium_close\", \"focus\": \"on_athlete\", \"lighting\": \"bright\"}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Focus on the athlete's expression and body language to convey the intensity of the moment.",
+          "action": "good_to_shoot",
+          "params": {
+            "camera_angle": "medium_close",
+            "focus": "on_athlete",
+            "lighting": "bright"
+          },
+          "priority": "high"
+        },
+        "latency_ms": 3098.9
+      },
+      {
+        "id": "synth_test_04",
+        "split": "synthetic_flaw",
+        "flaw_type": "tilt",
+        "source_file": "farm1_458_19586223233_3b42e6025a_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"rotate\", \"action\": \"rotate\", \"params\": {\"angle\": 5}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "rotate",
+          "action": "rotate",
+          "params": {
+            "angle": 5
+          },
+          "priority": "high"
+        },
+        "latency_ms": 1471.2
+      },
+      {
+        "id": "synth_test_05",
+        "split": "synthetic_flaw",
+        "flaw_type": "underexposed",
+        "source_file": "farm1_336_19970217040_592a1fb623_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"rotate\", \"action\": \"rotate\", \"params\": {\"angle\": 5}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "rotate",
+          "action": "rotate",
+          "params": {
+            "angle": 5
+          },
+          "priority": "high"
+        },
+        "latency_ms": 1458.3
+      },
+      {
+        "id": "synth_test_06",
+        "split": "synthetic_flaw",
+        "flaw_type": "overexposed",
+        "source_file": "farm1_299_20139306706_8c9fd8c0e3_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The image is a wide shot of a boat with several people on board, likely a tour or fishing boat. The water is choppy. The lighting is bright, suggesting daytime. Consider a wider shot to capture the whole scene or a closer shot on the activity.\", \"action\": \"good_to_shoot\", \"params\": {}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The image is a wide shot of a boat with several people on board, likely a tour or fishing boat. The water is choppy. The lighting is bright, suggesting daytime. Consider a wider shot to capture the whole scene or a closer shot on the activity.",
+          "action": "good_to_shoot",
+          "params": {},
+          "priority": "medium"
+        },
+        "latency_ms": 3464.2
+      },
+      {
+        "id": "synth_test_07",
+        "split": "synthetic_flaw",
+        "flaw_type": "framing",
+        "source_file": "farm1_331_19983664190_91af8fd8b1_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The image is a close-up of a bright yellow flower against a blue background. The focus is sharp on the flower, and the lighting is bright. Consider adjusting exposure to ensure the yellow is vibrant without blowing out the highlights.\", \"action\": \"good_to_shoot\", \"params\": {}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The image is a close-up of a bright yellow flower against a blue background. The focus is sharp on the flower, and the lighting is bright. Consider adjusting exposure to ensure the yellow is vibrant without blowing out the highlights.",
+          "action": "good_to_shoot",
+          "params": {},
+          "priority": "high"
+        },
+        "latency_ms": 3343.5
+      },
+      {
+        "id": "synth_test_08",
+        "split": "synthetic_flaw",
+        "flaw_type": "tilt",
+        "source_file": "farm1_475_20188928192_09d9bbac0c_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The composition is decent, but the subject's pose could be more dynamic. Consider a slightly lower angle to emphasize the motorcycle and the rider.\", \"action\": \"good_to_shoot\", \"params\": {}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The composition is decent, but the subject's pose could be more dynamic. Consider a slightly lower angle to emphasize the motorcycle and the rider.",
+          "action": "good_to_shoot",
+          "params": {},
+          "priority": "medium"
+        },
+        "latency_ms": 2690.4
+      },
+      {
+        "id": "synth_test_09",
+        "split": "synthetic_flaw",
+        "flaw_type": "underexposed",
+        "source_file": "farm1_549_20305941296_2384d684ef_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The composition is decent, but the subject is a bit small in the frame. Consider a wider shot or a closer crop on the person.\", \"action\": \"good_to_shoot\", \"params\": {}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The composition is decent, but the subject is a bit small in the frame. Consider a wider shot or a closer crop on the person.",
+          "action": "good_to_shoot",
+          "params": {},
+          "priority": "medium"
+        },
+        "latency_ms": 2786.9
+      },
+      {
+        "id": "synth_test_10",
+        "split": "synthetic_flaw",
+        "flaw_type": "overexposed",
+        "source_file": "farm1_321_19518897624_06d4994ee3_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The image appears to be a shot taken from a high vantage point, possibly during a construction or rigging activity. The focus is on the person and the rigging.\", \"action\": \"good_to_shoot\", \"params\": {}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The image appears to be a shot taken from a high vantage point, possibly during a construction or rigging activity. The focus is on the person and the rigging.",
+          "action": "good_to_shoot",
+          "params": {},
+          "priority": "medium"
+        },
+        "latency_ms": 2807.0
+      },
+      {
+        "id": "synth_test_11",
+        "split": "synthetic_flaw",
+        "flaw_type": "framing",
+        "source_file": "farm1_442_19922373539_8ccb0190fb_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The lighting in the image is somewhat flat, and the composition is a bit static. Consider adjusting the exposure or adding some contrast to make the subjects stand out more.\", \"action\": \"exposure\", \"params\": {\"exposure\": \"slightly brighter\"}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The lighting in the image is somewhat flat, and the composition is a bit static. Consider adjusting the exposure or adding some contrast to make the subjects stand out more.",
+          "action": "exposure",
+          "params": {
+            "exposure": "slightly brighter"
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2895.7
+      },
+      {
+        "id": "synth_test_12",
+        "split": "synthetic_flaw",
+        "flaw_type": "tilt",
+        "source_file": "farm1_310_19558743954_dfa5523945_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The lighting seems a bit flat. Consider adjusting the lighting to make the scene more engaging.\", \"action\": \"exposure\", \"params\": {\"exposure\": \"slightly brighter\"}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The lighting seems a bit flat. Consider adjusting the lighting to make the scene more engaging.",
+          "action": "exposure",
+          "params": {
+            "exposure": "slightly brighter"
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2311.1
+      },
+      {
+        "id": "synth_test_13",
+        "split": "synthetic_flaw",
+        "flaw_type": "underexposed",
+        "source_file": "farm1_336_20289300381_a45172926b_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The lighting in the scene is quite dark, which might make it difficult to see details. Consider adjusting the exposure to bring out more detail in the shadows.\", \"action\": \"exposure\", \"params\": {\"exposure\": \"increase\"}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The lighting in the scene is quite dark, which might make it difficult to see details. Consider adjusting the exposure to bring out more detail in the shadows.",
+          "action": "exposure",
+          "params": {
+            "exposure": "increase"
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2669.4
+      },
+      {
+        "id": "synth_test_14",
+        "split": "synthetic_flaw",
+        "flaw_type": "overexposed",
+        "source_file": "farm4_3788_20003583571_a3c9cbac7c_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The lighting in the image is quite bright, which might be causing some overexposure on the white fur. Consider adjusting the exposure settings to balance the highlights and shadows.\", \"action\": \"exposure\", \"params\": {\"exposure_adjustment\": \"decrease\"}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The lighting in the image is quite bright, which might be causing some overexposure on the white fur. Consider adjusting the exposure settings to balance the highlights and shadows.",
+          "action": "exposure",
+          "params": {
+            "exposure_adjustment": "decrease"
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2814.0
+      },
+      {
+        "id": "synth_test_15",
+        "split": "synthetic_flaw",
+        "flaw_type": "framing",
+        "source_file": "farm1_400_19542365013_37e657a212_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The subject is well-lit, but the composition could be improved by placing the subject more prominently or using the foliage as a more deliberate foreground element.\", \"action\": \"good_to_shoot\", \"params\": {}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The subject is well-lit, but the composition could be improved by placing the subject more prominently or using the foliage as a more deliberate foreground element.",
+          "action": "good_to_shoot",
+          "params": {},
+          "priority": "medium"
+        },
+        "latency_ms": 2629.4
+      },
+      {
+        "id": "synth_test_16",
+        "split": "synthetic_flaw",
+        "flaw_type": "tilt",
+        "source_file": "farm1_432_20180038952_6131b156fe_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"player_in_action\", \"action\": \"step_back\", \"params\": {\"subject\": \"player in blue jersey\", \"target\": \"camera\"}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "player_in_action",
+          "action": "step_back",
+          "params": {
+            "subject": "player in blue jersey",
+            "target": "camera"
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2106.0
+      },
+      {
+        "id": "synth_test_17",
+        "split": "synthetic_flaw",
+        "flaw_type": "underexposed",
+        "source_file": "farm4_3691_20011588869_f40653a09e_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"rotate\", \"action\": \"rotate\", \"params\": {\"angle\": 10}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "rotate",
+          "action": "rotate",
+          "params": {
+            "angle": 10
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 1504.0
+      },
+      {
+        "id": "synth_test_18",
+        "split": "synthetic_flaw",
+        "flaw_type": "overexposed",
+        "source_file": "farm1_343_20187146675_311df986f6_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Consider adjusting the exposure to balance the bright sky and the darker structure of the bridge.\", \"action\": \"exposure\", \"params\": {\"exposure_adjustment\": \"slightly_underexpose_highlights\"}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Consider adjusting the exposure to balance the bright sky and the darker structure of the bridge.",
+          "action": "exposure",
+          "params": {
+            "exposure_adjustment": "slightly_underexpose_highlights"
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2397.3
+      },
+      {
+        "id": "synth_test_19",
+        "split": "synthetic_flaw",
+        "flaw_type": "framing",
+        "source_file": "farm1_316_20155546855_880f4efb6f_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The image is a detailed, ornate piece of artwork, likely a tile or fresco, featuring a central religious or mythological scene within an oval frame. The colors are rich, dominated by earthy tones, reds, and blues.\", \"action\": \"good_to_shoot\", \"params\": {}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The image is a detailed, ornate piece of artwork, likely a tile or fresco, featuring a central religious or mythological scene within an oval frame. The colors are rich, dominated by earthy tones, reds, and blues.",
+          "action": "good_to_shoot",
+          "params": {},
+          "priority": "medium"
+        },
+        "latency_ms": 3134.7
+      },
+      {
+        "id": "real_aadb_00",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_345_20145296442_b97ef4d0b2_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 7.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The car has a very vibrant, custom paint job and an exposed engine bay with prominent chrome/metal piping, which gives it a strong, hot rod aesthetic. Focus on the reflections and the texture of the paint.\", \"action\": \"good_to_shoot\", \"params\": {\"aperture\": \"f/8\", \"shutter_speed\": \"1/125s\", \"iso\": \"400\"}, \"priority\": \"",
+        "strict_json_valid": false,
+        "any_json_valid": false,
+        "parsed": null,
+        "latency_ms": 4406.4
+      },
+      {
+        "id": "real_aadb_01",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_362_20255343986_9a572c4d2d_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 3.0/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The image quality is very poor, with low contrast and potential motion blur, resulting in a very low aesthetic score.\", \"action\": \"reframe\", \"params\": {\"camera_angle\": \"eye_level\", \"zoom\": \"1.0\"}, \"priority\": \"low\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The image quality is very poor, with low contrast and potential motion blur, resulting in a very low aesthetic score.",
+          "action": "reframe",
+          "params": {
+            "camera_angle": "eye_level",
+            "zoom": "1.0"
+          },
+          "priority": "low"
+        },
+        "latency_ms": 3115.1
+      },
+      {
+        "id": "real_aadb_02",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_266_20022112429_b0a40b39d1_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 3.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The image has a low aesthetic score, suggesting potential issues with composition, lighting, or focus. Consider adjusting the framing or lighting for a better result.\", \"action\": \"reframe\", \"params\": {\"subject\": \"street scene with buildings and motorcycles\", \"composition_suggestion\": \"Try a wider shot to capture more of the street activity or a closer shot focusing on the facade of the 'Fidel Cantina Cubana'.\"}, \"priority\": \"medium",
+        "strict_json_valid": false,
+        "any_json_valid": false,
+        "parsed": null,
+        "latency_ms": 4602.9
+      },
+      {
+        "id": "real_aadb_03",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_292_20198079701_4bc6427224_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Consider adjusting the exposure to better balance the bright lights of the tree with the dark background.\", \"action\": \"exposure\", \"params\": {\"exposure_adjustment\": \"increase\"}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Consider adjusting the exposure to better balance the bright lights of the tree with the dark background.",
+          "action": "exposure",
+          "params": {
+            "exposure_adjustment": "increase"
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2278.3
+      },
+      {
+        "id": "real_aadb_04",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_332_20077298145_9337dd99a9_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 6.0/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The subject is smiling and engaging with the camera, which is a good starting point. Consider adjusting the lighting or background for a more professional look.\", \"action\": \"good_to_shoot\", \"params\": {}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The subject is smiling and engaging with the camera, which is a good starting point. Consider adjusting the lighting or background for a more professional look.",
+          "action": "good_to_shoot",
+          "params": {},
+          "priority": "medium"
+        },
+        "latency_ms": 2594.5
+      },
+      {
+        "id": "real_aadb_05",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_389_20071085965_9fbd500f6d_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 6.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"The car is in motion on the track, suggesting a dynamic action shot is desired.\", \"action\": \"good_to_shoot\", \"params\": {\"camera_angle\": \"low_angle\", \"focus\": \"car\", \"framing\": \"track_side\"}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "The car is in motion on the track, suggesting a dynamic action shot is desired.",
+          "action": "good_to_shoot",
+          "params": {
+            "camera_angle": "low_angle",
+            "focus": "car",
+            "framing": "track_side"
+          },
+          "priority": "high"
+        },
+        "latency_ms": 3062.5
+      },
+      {
+        "id": "real_aadb_06",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm4_3809_20266720752_90d976f52d_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 4.0/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Improve lighting and composition for a more appealing photo.\", \"action\": \"reframe\", \"params\": {\"subject\": \"family\", \"composition\": \"center_frame\"}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Improve lighting and composition for a more appealing photo.",
+          "action": "reframe",
+          "params": {
+            "subject": "family",
+            "composition": "center_frame"
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2199.8
+      },
+      {
+        "id": "real_aadb_07",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_379_20304608416_6f4885d804_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 1.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Improve lighting and composition for a more engaging shot.\", \"action\": \"reframe\", \"params\": {\"subject\": \"dog\", \"focus\": \"dog\"}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Improve lighting and composition for a more engaging shot.",
+          "action": "reframe",
+          "params": {
+            "subject": "dog",
+            "focus": "dog"
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2124.3
+      },
+      {
+        "id": "real_aadb_08",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm4_3737_19553987984_f640cb3f75_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 6.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Focus on the action and players in the foreground.\", \"action\": \"good_to_shoot\", \"params\": {}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Focus on the action and players in the foreground.",
+          "action": "good_to_shoot",
+          "params": {},
+          "priority": "high"
+        },
+        "latency_ms": 1776.4
+      },
+      {
+        "id": "real_aadb_09",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_366_19368111544_fd2446d472_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 2.1/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Improve lighting and composition for a more engaging shot.\", \"action\": \"reframe\", \"params\": {\"subject\": \"person\", \"angle\": \"medium shot\", \"lighting\": \"improve\"}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Improve lighting and composition for a more engaging shot.",
+          "action": "reframe",
+          "params": {
+            "subject": "person",
+            "angle": "medium shot",
+            "lighting": "improve"
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2367.6
+      }
+    ]
+  },
+  "fine_tuned": {
+    "summary": {
+      "model_id": "VenuArvind/lenscoach-gemma4-e2b",
+      "device": "mps",
+      "dtype": "torch.bfloat16",
+      "n_synthetic": 20,
+      "n_real_aadb": 10,
+      "synth_strict_json_pct": 95.0,
+      "synth_any_json_pct": 95.0,
+      "synth_action_accuracy_pct": 35.0,
+      "tilt_mae_deg": 7.0,
+      "tilt_parsed_count": 1,
+      "real_strict_json_pct": 100.0,
+      "real_any_json_pct": 100.0,
+      "latency_p50_ms": 2221.3,
+      "latency_p95_ms": 3021.8
+    },
+    "records": [
+      {
+        "id": "synth_test_00",
+        "split": "synthetic_flaw",
+        "flaw_type": "tilt",
+        "source_file": "farm1_342_19511016973_65619fbda7_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to lift shadow detail on the dock and improve light balance\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.3}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to lift shadow detail on the dock and improve light balance",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.3
+          },
+          "priority": "high"
+        },
+        "latency_ms": 18014.8
+      },
+      {
+        "id": "synth_test_01",
+        "split": "synthetic_flaw",
+        "flaw_type": "underexposed",
+        "source_file": "farm1_276_19990408449_24310c4b18_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to lift shadow detail on faces\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.3}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to lift shadow detail on faces",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.3
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2085.1
+      },
+      {
+        "id": "synth_test_02",
+        "split": "synthetic_flaw",
+        "flaw_type": "overexposed",
+        "source_file": "farm1_444_20191882705_b8ea5cddfd_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to lift shadow detail on subjects\", \"action\": \"exposure\", \"params\": {\"exposure_ev\": 0.7}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to lift shadow detail on subjects",
+          "action": "exposure",
+          "params": {
+            "exposure_ev": 0.7
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2156.9
+      },
+      {
+        "id": "synth_test_03",
+        "split": "synthetic_flaw",
+        "flaw_type": "framing",
+        "source_file": "farm1_562_19558360544_f0839db7f1_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Tilt camera 30 degrees clockwise to level the horizon line\", \"action\": \"rotate\", \"params\": {\"degrees\": 30.0}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Tilt camera 30 degrees clockwise to level the horizon line",
+          "action": "rotate",
+          "params": {
+            "degrees": 30.0
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2310.6
+      },
+      {
+        "id": "synth_test_04",
+        "split": "synthetic_flaw",
+        "flaw_type": "tilt",
+        "source_file": "farm1_458_19586223233_3b42e6025a_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Slightly rotate counter-clockwise to level the image horizon (if applicable) or bring the flower's center of interest more level).\", \"action\": \"rotate\", \"params\": {\"degrees\": -3.5}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Slightly rotate counter-clockwise to level the image horizon (if applicable) or bring the flower's center of interest more level).",
+          "action": "rotate",
+          "params": {
+            "degrees": -3.5
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 3021.8
+      },
+      {
+        "id": "synth_test_05",
+        "split": "synthetic_flaw",
+        "flaw_type": "underexposed",
+        "source_file": "farm1_336_19970217040_592a1fb623_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"rotate\", \"action\": \"rotate\", \"params\": {\"degrees\": 5.8}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "rotate",
+          "action": "rotate",
+          "params": {
+            "degrees": 5.8
+          },
+          "priority": "high"
+        },
+        "latency_ms": 1769.9
+      },
+      {
+        "id": "synth_test_06",
+        "split": "synthetic_flaw",
+        "flaw_type": "overexposed",
+        "source_file": "farm1_299_20139306706_8c9fd8c0e3_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to lift shadow detail on the boat and crew\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.5}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to lift shadow detail on the boat and crew",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.5
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2195.9
+      },
+      {
+        "id": "synth_test_07",
+        "split": "synthetic_flaw",
+        "flaw_type": "framing",
+        "source_file": "farm1_331_19983664190_91af8fd8b1_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Slightly increase exposure to lift shadow detail in the center of the flower.\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.3}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Slightly increase exposure to lift shadow detail in the center of the flower.",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.3
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2388.0
+      },
+      {
+        "id": "synth_test_08",
+        "split": "synthetic_flaw",
+        "flaw_type": "tilt",
+        "source_file": "farm1_475_20188928192_09d9bbac0c_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to brighten the subject and scene\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.5}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to brighten the subject and scene",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.5
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2063.1
+      },
+      {
+        "id": "synth_test_09",
+        "split": "synthetic_flaw",
+        "flaw_type": "underexposed",
+        "source_file": "farm1_549_20305941296_2384d684ef_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Tilt camera 3.5\\u00b0 clockwise to level the horizon line\", \"action\": \"rotate\", \"params\": {\"degrees\": 3.5}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Tilt camera 3.5\u00b0 clockwise to level the horizon line",
+          "action": "rotate",
+          "params": {
+            "degrees": 3.5
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2507.7
+      },
+      {
+        "id": "synth_test_10",
+        "split": "synthetic_flaw",
+        "flaw_type": "overexposed",
+        "source_file": "farm1_321_19518897624_06d4994ee3_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to brighten the subject on the platform\", \"action\": \"exposure\", \"params\": {\"exposure_ev\": 1.0}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to brighten the subject on the platform",
+          "action": "exposure",
+          "params": {
+            "exposure_ev": 1.0
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2146.5
+      },
+      {
+        "id": "synth_test_11",
+        "split": "synthetic_flaw",
+        "flaw_type": "framing",
+        "source_file": "farm1_442_19922373539_8ccb0190fb_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Lighten the subject's face slightly to improve exposure on the faces\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.0}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Lighten the subject's face slightly to improve exposure on the faces",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.0
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2293.8
+      },
+      {
+        "id": "synth_test_12",
+        "split": "synthetic_flaw",
+        "flaw_type": "tilt",
+        "source_file": "farm1_310_19558743954_dfa5523945_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Lighten the subject's face slightly to improve exposure on the subject\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.0}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Lighten the subject's face slightly to improve exposure on the subject",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.0
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2352.9
+      },
+      {
+        "id": "synth_test_13",
+        "split": "synthetic_flaw",
+        "flaw_type": "underexposed",
+        "source_file": "farm1_336_20289300381_a45172926b_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Lighten exposure to reveal more detail in the dark scene\", \"action\": \"exposure\", \"params\": {\"exposure\": 2.0}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Lighten exposure to reveal more detail in the dark scene",
+          "action": "exposure",
+          "params": {
+            "exposure": 2.0
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2257.6
+      },
+      {
+        "id": "synth_test_14",
+        "split": "synthetic_flaw",
+        "flaw_type": "overexposed",
+        "source_file": "farm4_3788_20003583571_a3c9cbac7c_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to lift shadow detail on the dog's underside\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.5}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to lift shadow detail on the dog's underside",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.5
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2221.3
+      },
+      {
+        "id": "synth_test_15",
+        "split": "synthetic_flaw",
+        "flaw_type": "framing",
+        "source_file": "farm1_400_19542365013_37e657a212_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Lighten the subject slightly to lift shadow detail on the face and clothing\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.0}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Lighten the subject slightly to lift shadow detail on the face and clothing",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.0
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2345.1
+      },
+      {
+        "id": "synth_test_16",
+        "split": "synthetic_flaw",
+        "flaw_type": "tilt",
+        "source_file": "farm1_432_20180038952_6131b156fe_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"level up camera exposure (+1.0 EV) to brighten the subject's face and highlight the action.\", \"action\": \"exposure\", \"params\": {\"ev\": 1.0}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "level up camera exposure (+1.0 EV) to brighten the subject's face and highlight the action.",
+          "action": "exposure",
+          "params": {
+            "ev": 1.0
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2609.6
+      },
+      {
+        "id": "synth_test_17",
+        "split": "synthetic_flaw",
+        "flaw_type": "underexposed",
+        "source_file": "farm4_3691_20011588869_f40653a09e_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"light exposure (+1.5 EV), slightly rotate counter-clockwise (+5.0 deg) to level the horizon), \"action\": \"exposure\", \"params\": {\"exposure_ev\": 1.5, \"rotate\": -5.0}, \"priority\": \"high\"}",
+        "strict_json_valid": false,
+        "any_json_valid": false,
+        "parsed": null,
+        "latency_ms": 3176.4
+      },
+      {
+        "id": "synth_test_18",
+        "split": "synthetic_flaw",
+        "flaw_type": "overexposed",
+        "source_file": "farm1_343_20187146675_311df986f6_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Tilt the camera slightly upwards to capture more of the bridge's structure and the sky.\", \"action\": \"rotate\", \"params\": {\"degrees\": 3.0}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Tilt the camera slightly upwards to capture more of the bridge's structure and the sky.",
+          "action": "rotate",
+          "params": {
+            "degrees": 3.0
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2508.9
+      },
+      {
+        "id": "synth_test_19",
+        "split": "synthetic_flaw",
+        "flaw_type": "framing",
+        "source_file": "farm1_316_20155546855_880f4efb6f_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.8/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to lift shadow detail on the central figure\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.5}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to lift shadow detail on the central figure",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.5
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2164.5
+      },
+      {
+        "id": "real_aadb_00",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_345_20145296442_b97ef4d0b2_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 7.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Lighten the exposure to reveal more detail in the interior and reflections on the paintwork.\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.2}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Lighten the exposure to reveal more detail in the interior and reflections on the paintwork.",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.2
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2377.9
+      },
+      {
+        "id": "real_aadb_01",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_362_20255343986_9a572c4d2d_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 3.0/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to brighten the subject in the foreground\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.5}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to brighten the subject in the foreground",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.5
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2030.3
+      },
+      {
+        "id": "real_aadb_02",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_266_20022112429_b0a40b39d1_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 3.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to brighten the subject and details of the street scene.\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.5}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to brighten the subject and details of the street scene.",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.5
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2219.9
+      },
+      {
+        "id": "real_aadb_03",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_292_20198079701_4bc6427224_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 5.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to brighten the subject and lights\", \"action\": \"exposure\", \"params\": {\"exposure\": 2.0}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to brighten the subject and lights",
+          "action": "exposure",
+          "params": {
+            "exposure": 2.0
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2030.0
+      },
+      {
+        "id": "real_aadb_04",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_332_20077298145_9337dd99a9_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 6.0/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Lighten exposure to bring out detail in the subject's face and the texture of the brickwork.\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.3}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Lighten exposure to bring out detail in the subject's face and the texture of the brickwork.",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.3
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2666.4
+      },
+      {
+        "id": "real_aadb_05",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_389_20071085965_9fbd500f6d_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 6.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to lift shadow detail on the car\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.3}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to lift shadow detail on the car",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.3
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2108.4
+      },
+      {
+        "id": "real_aadb_06",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm4_3809_20266720752_90d976f52d_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 4.0/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to brighten the subjects' faces and the overall scene.\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.5}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to brighten the subjects' faces and the overall scene.",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.5
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2201.6
+      },
+      {
+        "id": "real_aadb_07",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_379_20304608416_6f4885d804_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 1.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to lift shadow detail on the subject\", \"action\": \"exposure\", \"params\": {\"exposure\": 1.5}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to lift shadow detail on the subject",
+          "action": "exposure",
+          "params": {
+            "exposure": 1.5
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2055.7
+      },
+      {
+        "id": "real_aadb_08",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm4_3737_19553987984_f640cb3f75_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 6.5/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"level up exposure to brighten the scene\", \"action\": \"exposure\", \"params\": {\"exposure_ev\": 1.0}, \"priority\": \"medium\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "level up exposure to brighten the scene",
+          "action": "exposure",
+          "params": {
+            "exposure_ev": 1.0
+          },
+          "priority": "medium"
+        },
+        "latency_ms": 2082.7
+      },
+      {
+        "id": "real_aadb_09",
+        "split": "real_aadb",
+        "flaw_type": "real_photo",
+        "source_file": "farm1_366_19368111544_fd2446d472_b.jpg",
+        "prompt_text": "Viewfinder telemetry: Aesthetic score: 2.1/10. Respond with raw JSON only (no markdown) with exact keys: tip, action (one of rotate, exposure, step_back, reframe, good_to_shoot), params (dict), priority (high/medium/low).",
+        "raw_output": "{\"tip\": \"Increase exposure to brighten the subject and scene\", \"action\": \"exposure\", \"params\": {\"exposure_ev\": 1.0}, \"priority\": \"high\"}",
+        "strict_json_valid": true,
+        "any_json_valid": true,
+        "parsed": {
+          "tip": "Increase exposure to brighten the subject and scene",
+          "action": "exposure",
+          "params": {
+            "exposure_ev": 1.0
+          },
+          "priority": "high"
+        },
+        "latency_ms": 2119.4
+      }
+    ]
+  }
+}

@@ -116,9 +116,17 @@ public class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutput
         
         // Trigger Gemma Coach evaluation check
         let now = Date()
-        if now.timeIntervalSince(lastCoachEvaluationTime) >= 1.5 {
+        if now.timeIntervalSince(lastCoachEvaluationTime) >= 1.8 {
             lastCoachEvaluationTime = now
-            gemmaCoach.evaluateViewfinder(telemetry: perceptionEngine.currentTelemetry)
+            let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+            let context = CIContext()
+            let frameImage: UIImage?
+            if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
+                frameImage = UIImage(cgImage: cgImage)
+            } else {
+                frameImage = nil
+            }
+            gemmaCoach.evaluateViewfinder(telemetry: perceptionEngine.currentTelemetry, frame: frameImage)
         }
     }
     

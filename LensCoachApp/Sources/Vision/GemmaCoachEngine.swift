@@ -2,6 +2,7 @@ import Foundation
 import UIKit
 import Combine
 import CoreImage
+import LiteRTLM
 
 /// Action categories emitted by the Gemma Coach model (strictly aligned with lenscoach_v2_plan.md Section 7)
 public enum CoachAction: String, Codable, CaseIterable {
@@ -207,90 +208,175 @@ public protocol CoachRuntime: AnyObject {
 public class LiteRTRuntime: CoachRuntime {
     public var isAvailable: Bool = false
     public var runtimeIdentifier: String = "Gemma 4 E2B (LiteRT Metal)"
-    
+
+    private var modelURL: URL?
+    private var engine: Engine?
+    private var initTask: Task<Engine?, Never>?
+
     public init() {
         checkModelAvailability()
+        if let url = modelURL {
+            initTask = Task.detached(priority: .userInitiated) {
+                do {
+                    let config = try EngineConfig(
+                        modelPath: url.path,
+                        backend: .gpu,
+                        visionBackend: .gpu,
+                        maxNumTokens: 1024,
+                        cacheDir: NSTemporaryDirectory()
+                    )
+                    let eng = Engine(engineConfig: config)
+                    try await eng.initialize()
+                    print("[LiteRTRuntime] Gemma 4 E2B initialized on Metal GPU")
+                    return eng
+                } catch {
+                    print("[LiteRTRuntime] Engine init failed: \(error)")
+                    return nil
+                }
+            }
+        }
     }
-    
+
     private func checkModelAvailability() {
-        let bundleURL = Bundle.main.url(forResource: "gemma-4-E2B-it-gpu", withExtension: "litertlm") ??
+        let bundleURL = Bundle.main.url(forResource: "gemma-4-E2B-it", withExtension: "litertlm") ??
+                        Bundle.module.url(forResource: "gemma-4-E2B-it", withExtension: "litertlm") ??
+                        Bundle.main.url(forResource: "gemma-4-E2B-it-gpu", withExtension: "litertlm") ??
                         Bundle.module.url(forResource: "gemma-4-E2B-it-gpu", withExtension: "litertlm")
         if let url = bundleURL, FileManager.default.fileExists(atPath: url.path) {
+            self.modelURL = url
             self.isAvailable = true
         } else {
             self.isAvailable = false
         }
     }
-    
+
+    private func getReadyEngine() async -> Engine? {
+        if let eng = engine { return eng }
+        if let task = initTask {
+            let initialized = await task.value
+            self.engine = initialized
+            return initialized
+        }
+        return nil
+    }
+
+    private func encodeResizedJPEG(_ image: UIImage, maxDim: CGFloat = 384) -> Data? {
+        let size = image.size
+        let scale = min(1.0, maxDim / max(size.width, size.height))
+        let targetSize = CGSize(width: max(64, size.width * scale), height: max(64, size.height * scale))
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let resized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        return resized.jpegData(compressionQuality: 0.75)
+    }
+
+    private func extractJSONObject(from raw: String) -> Data? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let data = trimmed.data(using: .utf8),
+           (try? JSONSerialization.jsonObject(with: data)) != nil {
+            return data
+        }
+        if let start = trimmed.firstIndex(of: "{"),
+           let end = trimmed.lastIndex(of: "}") , start <= end {
+            let sub = String(trimmed[start...end])
+            return sub.data(using: .utf8)
+        }
+        return nil
+    }
+
     public func evaluateViewfinder(telemetry: SceneTelemetry, frame: UIImage?) async -> LiveTip {
-        // Gated evaluation grounded in real telemetry
-        // 1. Horizon Tilt priority
+        if let eng = await getReadyEngine() {
+            do {
+                let prompt = String(
+                    format: "Viewfinder telemetry: Aesthetic score: %.1f/10, horizon_tilt: %.1f deg, steady: %@. Respond with raw JSON only with keys: tip, action (rotate, exposure, step_back, reframe, good_to_shoot, hold_steady), params (dict), priority (high, medium, low).",
+                    telemetry.aestheticScore * 10.0,
+                    telemetry.horizonTiltDegrees,
+                    telemetry.isCameraSteady ? "true" : "false"
+                )
+                let msg: Message
+                if let img = frame, let jpeg = encodeResizedJPEG(img, maxDim: 384) {
+                    msg = Message(contents: [.imageData(jpeg), .text(prompt)])
+                } else {
+                    msg = Message(prompt)
+                }
+
+                let tStart = CFAbsoluteTimeGetCurrent()
+                var ttftMs: Double = 0.0
+                var chunkCount = 0
+                var fullText = ""
+
+                let conversation = try await eng.createConversation()
+                for try await chunk in conversation.sendMessageStream(msg, maxOutputTokens: 96) {
+                    let piece = chunk.contents.toString
+                    if !piece.isEmpty {
+                        if chunkCount == 0 {
+                            ttftMs = (CFAbsoluteTimeGetCurrent() - tStart) * 1000.0
+                        }
+                        chunkCount += 1
+                        fullText += piece
+                    }
+                }
+                let totalMs = (CFAbsoluteTimeGetCurrent() - tStart) * 1000.0
+                let decodeSec = max(0.001, (totalMs - ttftMs) / 1000.0)
+                let tokPerSec = Double(max(1, chunkCount)) / decodeSec
+                DiagnosticsManager.shared.reportVLMCall(
+                    ttftMs: ttftMs > 0 ? ttftMs : totalMs,
+                    tokensPerSec: tokPerSec,
+                    totalMs: totalMs
+                )
+
+                if let data = extractJSONObject(from: fullText),
+                   let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let tipText = obj["tip"] as? String {
+                    let actionStr = (obj["action"] as? String) ?? "reframe"
+                    let action = CoachAction(rawValue: actionStr) ?? .reframe
+                    let params = (obj["params"] as? [String: Double]) ?? [:]
+                    let priority = (obj["priority"] as? String) ?? "medium"
+                    return LiveTip(tip: tipText, action: action, params: params, priority: priority)
+                }
+            } catch {
+                print("[LiteRTRuntime] Viewfinder VLM error, using fallback: \(error)")
+            }
+        }
+
+        // Fallback rule path while engine initializes or on error
+        let tStart = CFAbsoluteTimeGetCurrent()
+        let fallbackTip = ruleFallbackViewfinder(telemetry: telemetry)
+        let elapsedMs = (CFAbsoluteTimeGetCurrent() - tStart) * 1000.0
+        DiagnosticsManager.shared.reportVLMCall(ttftMs: elapsedMs, tokensPerSec: 0.0, totalMs: elapsedMs)
+        return fallbackTip
+    }
+
+    private func ruleFallbackViewfinder(telemetry: SceneTelemetry) -> LiveTip {
         if abs(telemetry.horizonTiltDegrees) > 1.2 {
             let tilt = telemetry.horizonTiltDegrees
             let dir = tilt > 0 ? "clockwise" : "counter-clockwise"
             let tipText = String(format: "Tilt ~%.0f° %@ to level the horizon", abs(tilt), dir)
-            return LiveTip(
-                tip: tipText,
-                action: .rotate,
-                params: ["degrees": abs(tilt)],
-                priority: "high"
-            )
+            return LiveTip(tip: tipText, action: .rotate, params: ["degrees": abs(tilt)], priority: "high")
         }
-        
-        // 2. Portrait / Subject Headroom and Framing
         if let subject = telemetry.subjectRect {
             if subject.maxY > 0.90 {
-                return LiveTip(
-                    tip: "Step back or tilt up to avoid clipping subject feet",
-                    action: .stepBack,
-                    priority: "medium"
-                )
+                return LiveTip(tip: "Step back or tilt up to avoid clipping subject feet", action: .stepBack, priority: "medium")
             }
             if subject.minY < 0.08 {
-                return LiveTip(
-                    tip: "Lower camera angle slightly for natural headroom",
-                    action: .lowerAngle,
-                    priority: "medium"
-                )
+                return LiveTip(tip: "Lower camera angle slightly for natural headroom", action: .lowerAngle, priority: "medium")
             }
-            
             let centerX = subject.midX
             let distFromThirdsX = min(abs(centerX - 0.33), abs(centerX - 0.67))
             let ruleOfThirdsScore = telemetry.attributes["RuleOfThirds"] ?? 0.5
             if ruleOfThirdsScore < 0.45 && distFromThirdsX > 0.12 {
-                return LiveTip(
-                    tip: "Reframe subject along grid third intersection",
-                    action: .reframe,
-                    priority: "medium"
-                )
+                return LiveTip(tip: "Reframe subject along grid third intersection", action: .reframe, priority: "medium")
             }
         }
-        
-        // 3. Technical lighting / exposure
         let lightScore = telemetry.attributes["Light"] ?? 0.6
         if lightScore < 0.45 {
-            return LiveTip(
-                tip: "Adjust exposure to lift shadow detail on focal subject",
-                action: .exposure,
-                params: ["ev": 0.3],
-                priority: "medium"
-            )
+            return LiveTip(tip: "Adjust exposure to lift shadow detail on focal subject", action: .exposure, params: ["ev": 0.3], priority: "medium")
         }
-        
-        // 4. Balanced capture state
         if telemetry.aestheticScore >= 0.70 && telemetry.isHorizonLevel {
-            return LiveTip(
-                tip: "Balanced composition and lighting. Good to shoot!",
-                action: .goodToShoot,
-                priority: "low"
-            )
+            return LiveTip(tip: "Balanced composition and lighting. Good to shoot!", action: .goodToShoot, priority: "low")
         }
-        
-        return LiveTip(
-            tip: "Hold steady and refine perspective",
-            action: .holdSteady,
-            priority: "low"
-        )
+        return LiveTip(tip: "Hold steady and refine perspective", action: .holdSteady, priority: "low")
     }
     
     public func evaluateCritique(image: UIImage, telemetry: SceneTelemetry) async -> ShotCritique {
@@ -438,6 +524,7 @@ public class GemmaCoachEngine: ObservableObject {
     
     private var lastTipTime: Date = .distantPast
     private let minTipInterval: TimeInterval = 1.8 // Throttled for battery & natural reading cadence
+    private var isInferringViewfinder = false
     
     public init(runtime: CoachRuntime = LiteRTRuntime()) {
         self.runtime = runtime
@@ -461,13 +548,16 @@ public class GemmaCoachEngine: ObservableObject {
             return
         }
         
+        guard !isInferringViewfinder else { return }
         guard now.timeIntervalSince(lastTipTime) >= minTipInterval else { return }
+        isInferringViewfinder = true
         
         Task {
             let tip = await self.runtime.evaluateViewfinder(telemetry: telemetry, frame: frame)
             await MainActor.run {
                 self.updateLiveTip(tip)
                 self.lastTipTime = Date()
+                self.isInferringViewfinder = false
             }
         }
     }
@@ -480,7 +570,12 @@ public class GemmaCoachEngine: ObservableObject {
     public func analyzeCapturedPhoto(image: UIImage, telemetry: SceneTelemetry) async -> ShotCritique {
         await MainActor.run { self.isAnalyzingPhoto = true }
         
+        let tStart = CFAbsoluteTimeGetCurrent()
         let critique = await self.runtime.evaluateCritique(image: image, telemetry: telemetry)
+        let totalMs = (CFAbsoluteTimeGetCurrent() - tStart) * 1000.0
+        let approxTokens = max(1, critique.summary.split(separator: " ").count + 24)
+        let tokPerSec = totalMs > 0 ? (Double(approxTokens) / (totalMs / 1000.0)) : 0.0
+        DiagnosticsManager.shared.reportVLMCall(ttftMs: totalMs, tokensPerSec: tokPerSec, totalMs: totalMs)
         
         await MainActor.run {
             self.lastCritique = critique

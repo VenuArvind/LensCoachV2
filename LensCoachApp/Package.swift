@@ -12,15 +12,18 @@ let package = Package(
             targets: ["LensCoachApp"]),
     ],
     dependencies: [
-        // Dependencies removed due to resolution issues. Use mock tips in LLMTipGenerator.
+        .package(url: "https://github.com/google-ai-edge/LiteRT-LM", from: "0.9.0")
     ],
     targets: [
         .target(
             name: "LensCoachApp",
-            dependencies: [],
+            dependencies: [
+                .product(name: "LiteRTLM", package: "LiteRT-LM")
+            ],
             path: "Sources",
             resources: [
-                .copy("Resources/FrameScore.mlmodelc")
+                .copy("Resources/FrameScore.mlmodelc"),
+                .copy("Resources/gemma-4-E2B-it.litertlm")
             ])
     ]
 )
